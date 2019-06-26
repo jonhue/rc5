@@ -1,0 +1,4 @@
+# Ignoriere die kompilierte Datei
+rc5
+# Ignoriere den vom Compiler generierten debug folder
+rc5.dSYM/
