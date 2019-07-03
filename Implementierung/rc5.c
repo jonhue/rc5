@@ -21,6 +21,19 @@ extern void rc5_enc(uint16_t *buffer, void *s);
 extern void rc5_dec(uint16_t *buffer, void *s);
 
 int main() {
+    char block[] = "ERAP";
+    uint16_t* keys = malloc(34 * 2);
+    if(keys == NULL) return;
+    int i = 0;
+    for(int i = 0; i < 34; ++i) {
+        *(keys + i) = i + 1;
+    }
+    printf("Plaintext: %s\n", block);
+    rc5_enc(block, keys);
+    printf("Verschlüsselt: %s\n", block);
+    rc5_dec(block, keys);
+    printf("Entschlüsselt: %s\n", block);
+    free(keys);
     return 0;
 }
 
