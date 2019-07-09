@@ -9,7 +9,8 @@
 %%%%%%%%%%%
 
 \usepackage{amssymb}
-\usepackage{biblatex}
+\usepackage{icomma}
+\usepackage[block=ragged]{biblatex}
 \addbibresource{Literatur.bib}
 
 % Diese Zeile bitte -nicht- aendern.
@@ -32,7 +33,62 @@
 
 \section{Ergebnisse}
 
-\subsection{Sicherheit}
+\subsection{RC5-16/16/b}
+
+\subsubsection{Schlüsselerweiterung mit P und Q}
+
+Für den Schritt der Schlüsselexpansion von RC5 werden die beiden ungeraden Ganzzahlen $P$ und $Q$ benötigt. Diese sind jeweils für eine gegebene Blockgröße von RC5 konstant. Im Allgemeinen gilt
+
+\begin{equation}
+    P = Odd((e - 2) \cdot 2^w)
+\end{equation}
+\begin{equation}
+    Q = Odd((\phi - 1) \cdot 2^w)
+\end{equation}
+
+mit $w$ als der Größe eines Halbblocks in Bits, $e$ als der Eulerschen Zahl und $\phi$ als dem Goldenen Schnitt wobei $Odd(x)$ die jeweils nächste ungerade Zahl bezeichnet.\bigbreak
+
+Für RC5-16/16/b --- RC5 mit der Wortgröße $16$, der Rundenanzahl $16$ und der Schlüsselgröße $b$ --- gilt damit:
+
+\begin{align*}
+    P &= Odd((2,71828 - 2) \cdot 2^{16}) \\
+      &= Odd(0,71828 \cdot 65.536) \\
+      &= Odd(47.073,19808) \\
+      &= 47.073 \\
+      &= 0xb7e1 \\
+    Q &= Odd((1,61803 - 1) \cdot 2^{16}) \\
+      &= Odd(0,61803 \cdot 65.536) \\
+      &= Odd(40.503,21408) \\
+      &= 40.503 \\
+      &= 0x9e37
+\end{align*}
+
+\subsubsection{Sicherheit}
+
+Durch die Parametrisierung von RC5\cite[p.2]{rc5rev} unterstützt die Chiffre sowohl unterschiedliche Blockgrößen, unterschiedliche Schlüssellängen als auch eine variable Anzahl von Runden. Hinter dieser Parametrisierung stehen zwei Intentionen:
+
+\begin{enumerate}
+    \item Durch die variable Blockgröße soll die Performance von RC5 von neueren 64-Bit Architekturen profitieren --- allerdings nicht auf diese beschränkt sein.\cite[p.1]{rc5rev}
+    \item Andererseits sollen die frei wählbaren Parameter $r$ und $b$ dem Nutzer der Chiffre die Entscheidung überlassen, wie viel Sicherheit und welche Performance seine Applikation benötigt.\cite[p.1]{rc5rev}
+\end{enumerate}
+
+Damit sind zur Beurteilung der Sicherheit von RC5 insbesondere die Rundenanzahl und die Schlüssellänge zu betrachten.
+
+\paragraph{Schlüssellänge} So wie im Allgemeinen bei Blockchiffren ist auch bei RC5 die Sicherheit der Chiffre stark von der gewählten Schlüssellänge abhängig. RC5 hat den Parameter $b$ mit $b \in \{k \in \mathbb{N}_0 \colon k \leq 255\}$, der die Länge des Schlüssels in Bytes angibt.\cite[p.3]{rc5rev} Die Länge der erweiterten Schlüsseltabelle in Bits ergibt sich durch $2^{(2r + 2)w}$.\cite[p.2]{rc5rev} Der Aufwand für eine \textit{erschöpfende Suche} ist damit $min\{2^{8b}, 2^{(2r + 2)w}\}$.\cite[p.29]{kaliski+yin} Für RC5-16/16/b ist damit der Aufwand einer erschöpfenden Suche allein von $b$ abhängig, solange $b < 68$ gilt.\bigbreak
+
+Das Bundesamt für Sicherheit in der Informationstechnik (BSI) schlägt für Blockchiffren wie RC5 eine minimale Schlüssellänge von $128$ Bits vor.\cite[p.21]{bsi}
+
+\paragraph{Mode of Operation} In der Praxis werden Blockchiffren in der Regel mit einem Mode of Operation umgesetzt, mithilfe dessen auch Nachrichten variabler Länge verschlüsselt werden können. Entscheidend ist für deren Sicherheit, dass der entstehende Ciphertext \textit{pseudorandom} --- ohne Wissen über Plaintext oder Schlüssel stochastisch zufällig\cite{pseudorandomness} --- ist.\bigbreak
+
+Ist dies nicht der Fall --- resultieren äquivalente Plaintext-Blöcke beispielsweise in äquivalenten Ciphertext-Blöcken ---, dann enthält der Ciphertext Informationen zur Struktur des Plaintextes\cite[p.22]{bsi}. In diesem Fall können Teile des Plaintextes durch \textit{Häufigkeitsanalyse} rekonstruiert werden\cite[p.22]{bsi}, oder sogar der verwendete Schlüssel durch einen \textit{Codebook Attack} gewonnen werden\cite[p.2]{elbaz}.\bigbreak
+
+Sichere Operationsmodi sind beispielsweise \textit{Counter Block Chaining (CBC)} und der \textit{Counter Mode (CTR)}, da dort der $n$-te Chiphertext-Block nicht nur von dem $n$-ten Plaintext-Block und dem genutzten Schlüssel abhängt, sondern zudem noch von einem weiteren Wert, wie dem $(n-1)$-ten Ciphertext-Block oder einem Zähler.\cite[p.22]{bsi}
+
+\paragraph{Rundenanzahl} Nach Kaliski und Yin werden für eine \textit{differenzielle Kryptoanalyse} von RC5-32/16/b entweder $2^{61}$ selbst gewählte Plaintexte oder $2^{63}$ bekannte Plaintexte benötigt. Ein solcher Angriff auf ein $16$-rundiges RC5 ist damit überaus unwahrscheinlich. Da die Anzahl der möglichen Plaintexte bei dieser Konfiguration von RC5 jedoch bei $2^{64}$ liegt, kann ein solcher Angriff nicht theoretisch ausgeschlossen werden.\cite[p.6]{kaliski+yin} Weiterhin sei eine \textit{lineare Kryptoanalyse von RC5} nur bei einer sehr geringen Rundenzahl von RC5 effektiv.\cite[p.28]{kaliski+yin}\bigbreak
+
+Knudsen und Meier zeigen zwar, dass die Komplexität des von Kaliski und Yin vorgeschlagenen differenziellen Angriffs um einen Faktor von bis zu $512$ reduziert werden kann.\cite[p.2]{knudsen+meier} Allerdings bleibt ein solcher Angriff damit weiterhin sehr unwahrscheinlich. Zudem wurde gezeigt, dass für bestimmte Teile des Schlüsselraums die differentiellen Kryptoanalysen weiter verbessert werden können.\cite[p.13]{knudsen+meier} Allerdings sind für einen effektiven Angriff entweder zu wenige Schlüssel betroffen oder die Anzahl der benötigten Plaintexte weiterhin zu hoch. Heys konnte Ähnliches für lineare Kryptoanalyse zeigen.\cite[p.5]{heys}\bigbreak
+
+Damit kann RC5-16/16/b bei $b >= 16$ und Nutzung eines geeigneten Operationsmodus als sicher gelten.
 
 \subsection{Feistelchiffren}
 
@@ -42,17 +98,17 @@ Die folgende allgemeine Darstellung von Feistelchiffren soll auf klassische (auc
 
 Eine Feistelchiffre ist eine rundenbasierte Blockchiffre, die nach der Art eines Feistelnetzwerks aufgebaut ist. Sei
 \[
-    F_n := \{f \mid f \colon \{0,1\}^n \to \{0,1\}^n\}
+    F_n := \{f \mid f \colon \{0, 1\}^n \to \{0, 1\}^n\}
 \]
 die Famile der Rundenfunktionen. Zunächst soll ein klassisches einrundiges Feistelnetzwerk $\Psi$ betrachtet werden. Dieses wird definiert durch eine beliebige Abbildung $f \in F_n$ und eine umkehrbare Bitoperation --- durch obige Einschränkung der Allgemeinheit $\oplus$.
 \[
-    \Psi(f) \colon \{0,1\}^{2n} \to \{0,1\}^{2n} \colon [L, R] \mapsto [S, T] \Leftrightarrow
+    \Psi(f) \colon \{0, 1\}^{2n} \to \{0, 1\}^{2n} \colon [L, R] \mapsto [S, T] \Leftrightarrow
         \begin{cases}
             S = R \\
             T = L \oplus f(R) \\
         \end{cases}
 \]
-für $\forall(L,R) \in (\{0,1\}^n)^2$.\cite[p.11]{nachef}
+für $\forall(L, R) \in (\{0, 1\}^n)^2$.\cite[p.11]{nachef}
 
 \begin{center}
     \includegraphics[scale=1]{img/1_round_feistel_cipher_enc.png}\break
@@ -65,7 +121,7 @@ Aus der Definition von $\Psi(f)$ ergibt sich ihr Inverses als
 \[
     \Psi(f)^{-1} = \sigma \circ \Psi(f) \circ \sigma
 \]
-mit $\sigma$ definiert als $\sigma([L,R]) = [R,L]$ für $L,R \in \{0,1\}^n$, der Vertauschung beider Halbblöcke.\cite[p.12]{nachef}
+mit $\sigma$ definiert als $\sigma([L, R]) = [R, L]$ für $L, R \in \{0, 1\}^n$, der Vertauschung beider Halbblöcke.\cite[p.12]{nachef}
 
 \begin{center}
     \includegraphics[scale=0.5]{img/1_round_feistel_cipher_dec.png}
@@ -73,9 +129,9 @@ mit $\sigma$ definiert als $\sigma([L,R]) = [R,L]$ für $L,R \in \{0,1\}^n$, der
 
 \subsubsection{r-rundige Feistelnetzwerke}
 
-Üblicherweise werden Feistelnetzwerke in mehreren Runden angewendet. Im Allgemeinen ist ein klassisches Feistelnetzwerk mit $r \geq 1$ Runden und $f_1,f_2,...,f_r \in F_n$ Rundenfunktionen definiert durch
+Üblicherweise werden Feistelnetzwerke in mehreren Runden angewendet. Im Allgemeinen ist ein klassisches Feistelnetzwerk mit $r \geq 1$ Runden und $f_1, f_2, ..., f_r \in F_n$ Rundenfunktionen definiert durch
 \[
-    \Psi^r(f_1,...,f_r) = \Psi(f_r) \circ ... \circ \Psi(f_2) \circ \Psi(f_1).
+    \Psi^r(f_1, ..., f_r) = \Psi(f_r) \circ ... \circ \Psi(f_2) \circ \Psi(f_1).
 \]\cite[p.12]{nachef}
 
 \begin{center}
@@ -85,20 +141,20 @@ mit $\sigma$ definiert als $\sigma([L,R]) = [R,L]$ für $L,R \in \{0,1\}^n$, der
 
 Da ein einrundiges Feistelnetzwerk eine Permutation über $\{0,1\}^{2n}$ ist, sind auch $r$-rundige Feistelnetzwerke Permutationen. Weiterhin ist das Inverse eines $r$-rundigen Feistelnetzwerks die Komposition der Inversen der einzelnen Runden.
 \begin{align*}
-    (\Psi^r(f_1,...,f_r))^{-1} &= \sigma \circ \Psi(f_1) \circ \sigma \circ ... \circ \sigma \circ \Psi(f_r) \circ \sigma  \\
-                               &= \sigma \circ \Psi^r(f_r,...,f_1) \circ \sigma
+    (\Psi^r(f_1, ..., f_r))^{-1} &= \sigma \circ \Psi(f_1) \circ \sigma \circ ... \circ \sigma \circ \Psi(f_r) \circ \sigma \\
+                                 &= \sigma \circ \Psi^r(f_r, ..., f_1) \circ \sigma
 \end{align*}\cite[p.13]{nachef}\bigbreak
 
 Eine Feistelchiffre ist nun ein spezielles Feistelnetzwerk, dessen Rundenfunktionen von einem Rundenschlüssel aus dem Schlüsselraum $K$ abhängen.
-Seien die Rundenschlüssel $(k_1,...,k_r) \in K^r$ und die Familie der Rundenfunktionen
+Seien die Rundenschlüssel $(k_1, ..., k_r) \in K^r$ und die Familie der Rundenfunktionen
 \[
-    F_{n,K} := \{f_k \mid k \in K, f_k \colon \{0,1\}^n \to \{0,1\}^n\}.
+    F_{n, K} := \{f_k \mid k \in K, f_k \colon \{0, 1\}^n \to \{0, 1\}^n\}.
 \]
-Dann ist eine Feistelchiffre das Feistelnetzwerk $\Psi^r(f_{k_1},...,f_{k_r})$. Also die $r$-rundige Permutation von der Nachricht $\{0,1\}^{2n}$ in Abhängigkeit vom Schlüssel $(k_1,...,k_r)$.\cite[p.14]{nachef}
+Dann ist eine Feistelchiffre das Feistelnetzwerk $\Psi^r(f_{k_1},...,f_{k_r})$. Also die $r$-rundige Permutation von der Nachricht $\{0, 1\}^{2n}$ in Abhängigkeit vom Schlüssel $(k_1, ..., k_r)$.\cite[p.14]{nachef}
 
 \subsubsection{RC5 als Feistelchiffre}
 
-RC5 ist eine symmetrische Blockchiffre, deren Aufbau dem einer Feistelchiffre gleicht. RC5 hat die Parameter:
+RC5 ist eine symmetrische Blockchiffre, deren Aufbau dem einer Feistelchiffre gleicht. RC5 hat die Parameter:\cite[p.2f]{rc5rev}
 
 \begin{itemize}
     \item $w$ ist die Wortgröße in Bits. Ein durch RC5 verschlüsselbarer Block besteht aus zwei Wörtern.
@@ -106,12 +162,12 @@ RC5 ist eine symmetrische Blockchiffre, deren Aufbau dem einer Feistelchiffre gl
     \item $b$ ist die Anzahl der Bytes in dem privaten Schlüssel $K$.
 \end{itemize}
 
-RC5 baut zu Beginn die erweiterte Schlüsseltabelle $S$ auf, die aus $2r + 2$ Schlüsseln besteht und von $K$ abhängt. Seien $\Sigma := (S_2,S_3,...,S_{2r+1}) = (\Sigma_0,\Sigma_1,...,\Sigma_{2r-1})$ mit $|\Sigma| = 2r$ die Schlüssel aus der erweiterten Schlüsseltabelle, die während der Runden von RC5 zum Verschlüsseln benutzt werden --- $S_0$ und $S_1$ werden für das Key-Whitening genutzt. Zudem sei $(g_{\Sigma_0},g_{\Sigma_1},...,g_{\Sigma_{2r-1}})$ definiert durch
+RC5 baut zu Beginn die erweiterte Schlüsseltabelle $S$ auf, die aus $2r + 2$ Schlüsseln besteht und von $K$ abhängt. Seien $\Sigma := (S_2, S_3, ..., S_{2r+1}) = (\Sigma_0, \Sigma_1, ..., \Sigma_{2r-1})$ mit $|\Sigma| = 2r$ die Schlüssel aus der erweiterten Schlüsseltabelle, die während der Runden von RC5 zum Verschlüsseln benutzt werden --- $S_0$ und $S_1$ werden für das Key-Whitening genutzt. Zudem sei $(g_{\Sigma_0}, g_{\Sigma_1}, ..., g_{\Sigma_{2r-1}})$ definiert durch
 \begin{align*}
-    g_k \colon &\{0,1\}^w \times \{0,1\}^w \to \{0,1\}^w \colon \\
+    g_k \colon &\{0, 1\}^w \times \{0, 1\}^w \to \{0, 1\}^w \colon \\
                &(\tau, R) \mapsto (\tau \lll R) + k
 \end{align*}
-mit $\tau = L \oplus R$, $k \in \Sigma$ und $L, R \in \{0,1\}^w$ wobei $x \lll y$ die Linksrotation von $x$ um $y$ Bits angibt. Dann zeigt die folgende Tabelle die Zusammenhänge von RC5 und Feistelchiffren.
+mit $\tau = L \oplus R$, $k \in \Sigma$ und $L, R \in \{0, 1\}^w$ wobei $x \lll y$ die Linksrotation von $x$ um $y$ Bits angibt. Dann zeigt die folgende Tabelle die Zusammenhänge von RC5 und Feistelchiffren.
 
 \begin{center}
  \begin{tabular}{c|c}
@@ -120,7 +176,7 @@ mit $\tau = L \oplus R$, $k \in \Sigma$ und $L, R \in \{0,1\}^w$ wobei $x \lll y
  $r$ & $2r$ \\
  $w$ & $n$ \\
  $\Sigma$ & $K^{2r}$ \\
- $(g_{\Sigma_0},g_{\Sigma_1},...,g_{\Sigma_{2r-1}})$ & $(f_{k_1},...,f_{k_{2r}}) \in F^{2r}_{n,K}$ \\
+ $(g_{\Sigma_0}, g_{\Sigma_1}, ..., g_{\Sigma_{2r-1}})$ & $(f_{k_1}, ..., f_{k_{2r}}) \in F^{2r}_{n, K}$ \\
 \end{tabular}
 \end{center}
 
@@ -137,7 +193,7 @@ wobei $r$ die aktuelle Runde angibt. Wie dargestellt, ist eine Halbrunde von RC5
 
 Durch den leicht modifizierten Aufbau einer Feistelchiffre in RC5, verändert sich bei RC5 die Berechnung der Inversen. Für eine RC5-Runde gilt
 \[
-    RC5_{r,\Sigma} \colon \{0,1\}^{2w} \to \{0,1\}^{2w} \colon [L, R] \mapsto [S, T] \Leftrightarrow
+    RC5_{r, \Sigma} \colon \{0, 1\}^{2w} \to \{0, 1\}^{2w} \colon [L, R] \mapsto [S, T] \Leftrightarrow
         \begin{cases}
             S = ((L \oplus R) \lll R) + \Sigma_{2r-2} \\
             T = ((R \oplus S) \lll S) + \Sigma_{2r-1} \\
@@ -145,13 +201,13 @@ Durch den leicht modifizierten Aufbau einer Feistelchiffre in RC5, verändert si
 \]
 Damit gilt für die Berechnung der Inversen von einer RC5-Runde
 \[
-    RC5_{r,\Sigma}^{-1} \colon \{0,1\}^{2w} \to \{0,1\}^{2w} \colon [S, T] \mapsto [L, R] \Leftrightarrow
+    RC5_{r, \Sigma}^{-1} \colon \{0, 1\}^{2w} \to \{0, 1\}^{2w} \colon [S, T] \mapsto [L, R] \Leftrightarrow
         \begin{cases}
             L = ((S - \Sigma_{2r-2}) \ggg R) \oplus R \\
             R = ((T - \Sigma_{2r-1}) \ggg S) \oplus S \\
         \end{cases}
 \]
-für $\forall(S, T) \in (\{0,1\}^w)^2$ wobei $x \ggg y$ die Rechtsrotation von $x$ um $y$ Bits angibt.
+für $\forall(S, T) \in (\{0, 1\}^w)^2$ wobei $x \ggg y$ die Rechtsrotation von $x$ um $y$ Bits angibt.
 
 \subsection{PKCS\#7-Padding}
 
@@ -167,12 +223,12 @@ Das heißt, dass der Input in Abhängigkeit von $b$ und $l$ um eine der folgende
 
 \begin{samepage}
 \begin{verbatim}
-                     01 -- if l mod b = b-1
-                  02 02 -- if l mod b = b-2
-                      .
-                      .
-                      .
-            b b ... b b -- if l mod b = 0
+         01 -- if l mod b = b-1
+      02 02 -- if l mod b = b-2
+          .
+          .
+          .
+b b ... b b -- if l mod b = 0
 \end{verbatim}
 \end{samepage}
 
