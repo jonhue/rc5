@@ -27,10 +27,24 @@
 
 \section{Lösungsfindung}
 
-Eine weitere Herausforderung war die Erzeugung und Speicherung des Initialisierungsvektors, der beim Cipher Block Chaining Mode benötigt wird. Es ist entscheidend, dass dieser nicht aus zuvor bekannten Informationen erzeugt wird, wie es bei
+\subsection{Initialisierungsvektor}
+Eine weitere Herausforderung war die Erzeugung und Speicherung des Initialisierungsvektors, der beim Cipher Block Chaining Mode benötigt wird. Es ist einerseits entscheidend, dass dieser nicht aus zuvor bekannten Informationen erzeugt wird, wie es zum Beispiel bei SSL 2.0 der Fall war. Andererseits ist eine ausreichende Länge wichtig, um einem Related-Key-Attack vorzubeugen, der zum Beispiel das WEP-Protokoll betraf. 
+\bigbreak
+Aufgrund der Blocklänge bot sich für uns nur ein 32-Bit-Initialisierungsvektor an, den wir pseudozufällig generieren.
+Eine Geheimhaltung des Initialisierungsvektors ist nicht erforderlich, weshalb der Vektor am Ende der verschlüsselten Datei gespeichert und dort bei der Entschlüsselung wieder ausgelesen wird.
+
+\subsection{Einmaliges Ausführen der Schlüsselexpansion}
+Ein bei gleicher Rundenanzahl und Blockgröße stets gleich bleibender Schritt bei der Ver- und Entschlüsselung ist die Schlüsselexpansion. Diese hängt nur von den Nothing-Up-My-Sleeve-Zahlen $P$ und $Q$ ab und muss daher im Voraus nur einmal berechnet werden. Die resultierenden Rundenschlüssel speichern wir in der data-Section unseres Assemblyprogramms, um sie beim Key-Mixing weiter zu verwenden. Der Code zur Schlüsselexpansion ist seperat in der Datei TODO zu finden.
+
+\subsection{Optimierung durch SIMD}
+Eine Optimierung durch SIMD ist möglich und sinnvoll, wenn auf mehreren Datenblöcken die selbe Operation ohne Abhängigkeiten zwischen Blöcken ausgeführt wird. Bei RC5 und dem CBC-Mode werden jedoch häufig Abhängigkeiten verwendet, um statistischen Analysen, wie sie zum Beispiel beim ECB-Mode möglich sind, vorzubeugen.
+Beim Key-Mixing hängt der nächste Rundenschlüssel beispielsweise direkt vom vorherigen ab, wodurch eine Parallelisierung unmöglich wird.
+Ähnliches gilt für die Ver- und Entschlüsselung, da dort 
+Da beim Cipher Block Chaining Mode der folgende Ciphertextblock stets vom aktuellen abhängt, ist eine Optimierung durch SIMD bei einer Blockgröße von 32 Bit nicht möglich.
 -IV am Dateiende
 	-andere Mögl: aus Key generieren, Nutzer eingeben lassen
 -Kein SIMD
+-Entscheidung Schlüsselexpansion hardgecodet
 
 \section{Dokumentation der Implementierung}
 
