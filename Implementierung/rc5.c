@@ -1,4 +1,3 @@
-#include <bsd/stdlib.h>
 #include <string.h>
 #include <errno.h>
 #include <getopt.h>
@@ -65,11 +64,11 @@ int main(int argc, char **argv) {
         usage(program_name);
     }
 
-    // optind entält den Index auf das nächste argv Argument
+    // optind enthält den Index auf das nächste argv Argument
     argc -= optind;
     argv += optind;
 
-    if (argc != 2) {
+    if (argc < 2 || argc > 3) {
         // Keine input Datei oder Schlüssel
         usage(program_name);
     }
@@ -80,7 +79,7 @@ int main(int argc, char **argv) {
 
     size_t size = read_file(inputFile, NULL, 0);
     if (size == -1) {
-        // Fehler beim öffnen oder bestimmen der Dateigröße
+        // Fehler beim Öffnen oder Bestimmen der Dateigröße
         err(EX_IOERR, "%s", inputFile);
     }
 
@@ -98,8 +97,6 @@ int main(int argc, char **argv) {
     }
 
     if (encrypt) {
-        // data enthält nur den zu verschlüsselnden Dateiinhalt
-
         uint32_t iv = arc4random(); // init vector
         size_t size_pad = BLOCKSIZE - (size % BLOCKSIZE);
         size_t size_all = size + size_pad + sizeof(iv);
@@ -112,17 +109,17 @@ int main(int argc, char **argv) {
         // Füge padding nach Dateiinhalt an
         pkcs7_pad((uint8_t *) data + size, size_pad);
 
-        // Verschlüssel Dateiinhalt + padding
+        // Verschlüssele Dateiinhalt + padding
         rc5_cbc_enc((unsigned char *) key, strlen(key), data, size + size_pad, iv);
 
-        // Füge init vector ans Dateiende (nach padding)
-        ((uint32_t *) data)[size + size_pad / sizeof(uint32_t)] = iv;
+        // Füge iv ans Dateiende an (nach padding)
+        ((uint32_t *) data)[(size + size_pad) / sizeof(uint32_t)] = iv;
         size = size_all;
     } else {
-        // data enthält den zu entschlüsselnden Dateiinhalt und padding + init vector am Ende der
-        // Datei (unverschlüsselt)
+        // data enthält den zu entschlüsselnden Dateiinhalt inklusive padding sowie den
+        // unverschlüsselten Initialisierungsvektor am Ende der Datei
 
-        // init vector am Dateiende
+        // iv am Dateiende
         uint32_t iv = ((uint32_t *) data)[size / sizeof(uint32_t) - 1];
         size = rc5_cbc_dec((unsigned char *) key, strlen(key), data, size - sizeof(iv), iv);
         if (size == -1) {
@@ -155,7 +152,7 @@ long read_file(const char *restrict path, void *restrict buffer, size_t size) {
     }
 
     if (buffer == NULL) {
-        // Springe zum Dateiende um Dateigröße herauszufinden
+        // Springe zum Dateiende, um Dateigröße herauszufinden
         if (fseek(file, 0, SEEK_END)) {
             // Schließe Datei und behalte ursprünglichen errno
             fclose_keep_errno(file);
@@ -232,36 +229,31 @@ void pkcs7_pad(void *buf, size_t len) {
 }
 
 void rc5_cbc_enc(unsigned char *key, size_t keylen, uint32_t *buffer, size_t len, uint32_t iv) {
-    // allokiere Speicherbereich für die Rundenschluessel
-    // 2r+2 Schluessel zu je 16 Bit laenge
-    void *roundkeys = malloc((2 * ROUNDS + 2) * HALFBLOCK);
-    void *l = malloc((2 * ROUNDS + 2) * HALFBLOCK);
+    // allokiere Speicherbereich für L
+    void *l = malloc(keylen % 2 == 0 ? keylen : keylen + 1);
 
     // Keysetup
-    rc5_init(key, keylen, roundkeys, l);
+    rc5_init(key, keylen, l);
 
     // benutze iv um den ersten block zu XORen
     *buffer ^= iv;
-    rc5_enc(buffer, roundkeys);
+    rc5_enc(buffer);
 
     for (size_t i = 1; i < len / BLOCKSIZE; i++) {
         uint32_t *lastblock = buffer++;
         *buffer ^= *lastblock;
-        rc5_enc(buffer, roundkeys);
+        rc5_enc(buffer);
     }
 
-    free(roundkeys);
     free(l);
 }
 
 int rc5_cbc_dec(unsigned char *key, size_t keylen, uint32_t *buffer, size_t len, uint32_t iv) {
-    // allokiere Speicherbereich für die Rundenschluessel
-    // 2r+2 Schluessel zu je 16 Bit laenge
-    void *roundkeys = malloc((2 * ROUNDS + 2) * HALFBLOCK);
-    void *l = malloc((2 * ROUNDS + 2) * HALFBLOCK);
+    // allokiere Speicherbereich für L
+    void *l = malloc(keylen % 2 == 0 ? keylen : keylen + 1);
 
     // Keysetup
-    rc5_init(key, keylen, roundkeys, l);
+    rc5_init(key, keylen, l);
 
     if (len % BLOCKSIZE != 0) {
         return -1;
@@ -269,19 +261,19 @@ int rc5_cbc_dec(unsigned char *key, size_t keylen, uint32_t *buffer, size_t len,
 
     uint32_t lastenc = *buffer;
     // benutze iv um den ersten block zu XORen
-    rc5_dec(buffer, roundkeys);
+    rc5_dec(buffer);
     *buffer ^= iv;
 
     for (size_t i = 1; i < len / BLOCKSIZE; i++) {
         uint32_t curenc = *(++buffer);
-        rc5_dec(buffer, roundkeys);
+        rc5_dec(buffer);
         *buffer ^= lastenc;
         lastenc = curenc;
     }
 
-    free(roundkeys);
     free(l);
 
-    // gibt size ohne padding zurück
-    return len - (*buffer & 0xFFu);
+    // Gib size ohne padding zurück. Da buffer bereits auf letzten Block zeigt, ist das letzte Byte,
+    // also drei Byte weiter, relevant.
+    return len - ((uint8_t *) buffer)[3];
 }
