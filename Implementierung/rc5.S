@@ -12,7 +12,7 @@ roundkeys: .word \
     0x9b51, 0x3988, 0xd7bf, 0x75f6, 0x142d, 0xb264, 0x509b, 0xeed2, \
     0x8d09, 0x2b40, 0xc977, 0x67ae, 0x05e5, 0xa41c, 0x4253, 0xe08a, \
     0x7ec1, 0x1cf8
-    
+
 .text
 
 rc5_init:
@@ -134,14 +134,16 @@ rc5_enc:
     # Block aus Speicher holen
     mov r8d, dword ptr [rdi]
 
-    # Key-Whitening auf ganzem Block
-    add r8d, dword ptr [rsi]
-    add rsi, 4
-
     # Aufteilung in linken und rechten Halbblock
     mov r9w, r8w
     shr r8d, 16
     mov r10w, r8w
+
+    # Key-Whitening
+    add r9w, word ptr [rsi]
+    add rsi, 2
+    add r10w, word ptr [rsi]
+    add rsi, 2
 
     # 16 Runden sollen durchgeführt werden
     mov edx, 16
@@ -245,13 +247,16 @@ rc5_dec:
     dec edx
     jnz .Ldecloop
 
+    # Anti-Key-Whitening
+    sub rsi, 2
+    sub r10w, word ptr [rsi]
+    sub rsi, 2
+    sub r9w, word ptr [rsi]
+
     # Zusammenfügen der Halbblöcke
     mov r8w, r10w
     shl r8d, 16
     mov r8w, r9w
-
-    # Anti-Key-Whitening auf ganzem Block
-    sub r8d, dword ptr [rsi - 4]
 
     # Zurückschreiben in Speicher
     mov dword ptr [rdi], r8d
