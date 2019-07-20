@@ -15,7 +15,7 @@ void pkcs7_pad(void *buf, size_t len);
 
 void rc5_cbc_enc(unsigned char *key, size_t keylen, uint32_t *buffer, size_t len, uint32_t iv);
 
-int rc5_cbc_dec(unsigned char *key, size_t keylen, uint32_t *buffer, size_t len, uint32_t iv);
+void rc5_cbc_dec(unsigned char *key, size_t keylen, uint32_t *buffer, size_t len, uint32_t iv);
 
 void usage(const char *restrict program_name);
 

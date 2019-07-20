@@ -10,10 +10,15 @@
 #define HALFBLOCK BLOCKSIZE/2
 
 void *data = NULL;
+size_t size = -1;
 
 void cleanup(void) {
     if (data != NULL) {
+        if (size > 0) {
+            memset(data, 0, size);
+        }
         free(data);
+        data = NULL;
     }
 }
 
@@ -77,18 +82,25 @@ int main(int argc, char **argv) {
     const char *restrict inputFile = argv[1];
     const char *restrict outputFile = argc == 3 ? argv[2] : argv[1];
 
-    size_t size = read_file(inputFile, NULL, 0);
+    size = read_file(inputFile, NULL, 0);
     if (size == -1) {
         // Fehler beim Öffnen oder Bestimmen der Dateigröße
         err(EX_IOERR, "%s", inputFile);
     }
+    size_t size_text = size;
+    size_t size_pad = BLOCKSIZE - (size % BLOCKSIZE);
+    size_t size_iv = sizeof(uint32_t);
 
+    if (encrypt) {
+        // Erhöhe size, um padding und iv zu speichern
+        size = size + size_pad + size_iv;
+    }
     data = malloc(size);
     if (!data) {
         err(EX_OSERR, NULL);
     }
 
-    if (read_file(inputFile, data, size)) {
+    if (read_file(inputFile, data, size_text)) {
         err(EX_IOERR, "%s", inputFile);
     }
 
@@ -97,34 +109,31 @@ int main(int argc, char **argv) {
     }
 
     if (encrypt) {
-        uint32_t iv = arc4random(); // init vector
-        size_t size_pad = BLOCKSIZE - (size % BLOCKSIZE);
-        size_t size_all = size + size_pad + sizeof(iv);
-        // Erweitere Speicher um padding und iv zu speichern
-        data = reallocf(data, size_all);
-        if (data == NULL) {
-            err(EX_OSERR, NULL);
-        }
+        uint32_t iv = arc4random(); // Initialisierungsvektor
 
         // Füge padding nach Dateiinhalt an
-        pkcs7_pad((uint8_t *) data + size, size_pad);
+        pkcs7_pad((uint8_t *) data + size_text, size_pad);
 
         // Verschlüssele Dateiinhalt + padding
-        rc5_cbc_enc((unsigned char *) key, strlen(key), data, size + size_pad, iv);
+        rc5_cbc_enc((unsigned char *) key, strlen(key), data, size_text + size_pad, iv);
 
         // Füge iv ans Dateiende an (nach padding)
-        ((uint32_t *) data)[(size + size_pad) / sizeof(uint32_t)] = iv;
-        size = size_all;
+        ((uint32_t *) data)[(size_text + size_pad) / sizeof(uint32_t)] = iv;
     } else {
         // data enthält den zu entschlüsselnden Dateiinhalt inklusive padding sowie den
         // unverschlüsselten Initialisierungsvektor am Ende der Datei
 
         // iv am Dateiende
         uint32_t iv = ((uint32_t *) data)[size / sizeof(uint32_t) - 1];
-        size = rc5_cbc_dec((unsigned char *) key, strlen(key), data, size - sizeof(iv), iv);
-        if (size == -1) {
-            errx(EX_DATAERR, "%s: Could not decrypt. File is malformed", inputFile);
+
+        // Abbruch, falls die Länge des Ciphertextes kein Vielfaches der Blockgröße ist
+        if ((size - size_iv) % BLOCKSIZE != 0) {
+            errx(EX_DATAERR, "%s: Could not decrypt. File is malformed.", inputFile);
         }
+
+        rc5_cbc_dec((unsigned char *) key, strlen(key), data, size - size_iv, iv);
+        // reduziere size um Länge des Paddings und des iv
+        size = size - size_iv - ((uint8_t *) data)[size - size_iv - 1];
     }
 
     if (write_file(outputFile, data, size)) {
@@ -230,7 +239,8 @@ void pkcs7_pad(void *buf, size_t len) {
 
 void rc5_cbc_enc(unsigned char *key, size_t keylen, uint32_t *buffer, size_t len, uint32_t iv) {
     // allokiere Speicherbereich für L
-    void *l = malloc(keylen % 2 == 0 ? keylen : keylen + 1);
+    size_t l_len = keylen % 2 == 0 ? keylen : keylen + 1;
+    void *l = malloc(l_len);
 
     // Keysetup
     rc5_init(key, keylen, l);
@@ -245,19 +255,18 @@ void rc5_cbc_enc(unsigned char *key, size_t keylen, uint32_t *buffer, size_t len
         rc5_enc(buffer);
     }
 
+    memset(l, 0, l_len);
+    memset(key, 0, keylen);
     free(l);
 }
 
-int rc5_cbc_dec(unsigned char *key, size_t keylen, uint32_t *buffer, size_t len, uint32_t iv) {
+void rc5_cbc_dec(unsigned char *key, size_t keylen, uint32_t *buffer, size_t len, uint32_t iv) {
     // allokiere Speicherbereich für L
-    void *l = malloc(keylen % 2 == 0 ? keylen : keylen + 1);
+    size_t l_len = keylen % 2 == 0 ? keylen : keylen + 1;
+    void *l = malloc(l_len);
 
     // Keysetup
     rc5_init(key, keylen, l);
-
-    if (len % BLOCKSIZE != 0) {
-        return -1;
-    }
 
     uint32_t lastenc = *buffer;
     // benutze iv um den ersten block zu XORen
@@ -271,9 +280,7 @@ int rc5_cbc_dec(unsigned char *key, size_t keylen, uint32_t *buffer, size_t len,
         lastenc = curenc;
     }
 
+    memset(l, 0, l_len);
+    memset(key, 0, keylen);
     free(l);
-
-    // Gib size ohne padding zurück. Da buffer bereits auf letzten Block zeigt, ist das letzte Byte,
-    // also drei Byte weiter, relevant.
-    return len - ((uint8_t *) buffer)[3];
 }
