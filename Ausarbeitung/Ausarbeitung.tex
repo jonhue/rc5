@@ -10,6 +10,8 @@
 
 \usepackage{amssymb}
 \usepackage{icomma}
+\usepackage{hyperref}
+\usepackage{tabularx}
 \usepackage[block=ragged]{biblatex}
 \addbibresource{bib/Literatur.bib}
 
@@ -54,6 +56,7 @@ Für RC5-16/16/b --- RC5 mit der Wortgröße $16$, der Rundenanzahl $16$ und der
 \end{align*}
 
 \subsubsection{Sicherheit}
+\label{sec:Sicherheit}
 
 Durch die Parametrisierung von RC5\cite[p.2]{rc5rev} unterstützt die Chiffre sowohl unterschiedliche Blockgrößen, unterschiedliche Schlüssellängen als auch eine variable Anzahl von Runden. Hinter dieser Parametrisierung stehen zwei Intentionen:
 
@@ -245,7 +248,139 @@ Beim Key-Mixing hängt der nächste Rundenschlüssel beispielsweise direkt vom v
 Die einzig mögliche Optimierung ist das gleichzeitige Laden mehrerer Rundenschlüssel oder Blöcke aus dem Speicher, um die Anzahl der Zugriffe zu minimieren. Zunächst war unser Ziel, mit SSE-, AVX- oder AVX-512-Registern möglichst viele Schlüssel gleichzeitig zu laden. Für die Benutzung bei der Ver-/Entschlüsselung werden jedoch einzelne Schlüssel benötigt. Da die x86-64-Instruktion PEXTRW, die das Extrahieren einer einzelnen Lane erlaubt, als Laneindex nur einen Immediate akzeptiert, entschieden wir uns, 4 Schlüssel gleichzeitig in ein 64-Bit-Register zu laden und durch Shift-Operation den passenden Schlüssel in die niedrigen 16 Bit zu bewegen.
 
 \section{Dokumentation der Implementierung}
+Die hier bereitgestellte RC5-Implementierung kann zur sicheren Ver- und Entschlüsselung von Daten
+genutzt werden.
+Voraussetzung dafür, ist das Wählen eines geeigneten Schlüssels mit mindestens 16 Byte Länge (siehe
+\hyperref[sec:Sicherheit]{2.1.2 Sicherheit}).
+Es stehen die Betriebsmodi Cipher Block Chaining (CBC) und Counter Mode (CTR) zur Verfügung, wobei
+letzterer effizienter ist.\bigbreak
 
+Im Folgenden ist die Gebrauchsanweisung der RC5-Implementierung beschrieben:
+
+\begin{verbatim}
+    rc5 (-d | --decrypt | -e | --encrypt) [--ctr] <key> <inputFile> [outputFile]
+\end{verbatim}
+Es kann entweder verschlüsselt oder entschlüsselt werden.
+Falls beide Optionen angegeben sind, bricht das Programm ab.
+Sofern keine Ausgabedatei angegeben ist, wird das Ergebnis in die Eingabedatei geschrieben.
+
+\subsection{Entwicklerdokumentation}
+
+\subsubsection{Funktionen}
+
+\begin{verbatim}
+int main(int argc, char **argv)
+\end{verbatim}
+Liest übergebene Parameter aus und bestimmt den Programmfluss.\\[1.5mm]
+\texttt{argc} Die Anzahl der übergebenen Parameter inklusive Programmaufrufname.\\
+\texttt{argv} Die übergebenen Parameter.
+Der Programmaufrufname ist an erster Stelle.\\
+\begin{verbatim}
+void usage(const char *restrict program_name)
+\end{verbatim}
+Gibt die in der Benutzerdokumentation angegebene Gebrauchsanweisung aus.\\[1.5mm]
+\texttt{program\_name} Programmname.
+Wird mit ausgegeben.\\
+\begin{verbatim}
+long read_file(const char *restrict path, void *restrict buffer, size_t size)
+\end{verbatim}
+Liest die Datei in \texttt{path} in \texttt{buffer}.\\[1.5mm]
+\texttt{path} Der Pfad zur Datei, die gelesen werden soll.\\
+\texttt{buffer} Der Buffer in dem die Datei gespeichert werden soll.
+Wenn \texttt{NULL}, gibt die Funktion die Dateigröße in Bytes zurück.\\
+\texttt{size} Die Größe des Buffers.\\
+\texttt{return} Gibt die Dateigröße in Bytes zurück wenn buffer \texttt{NULL} ist, ansonsten wird
+\texttt{0} zurückgegeben.
+Falls ein Fehler auftritt, wird \texttt{-1} zurückgegeben.\\
+\begin{verbatim}
+int write_file(const char *restrict path, const void *restrict buffer, size_t size)
+\end{verbatim}
+Speichert \texttt{buffer} an den angegeben Pfad.\\[1.5mm]
+\texttt{path} Der Pfad an den buffer gespeichert werden soll.\\
+\texttt{buffer} Der Buffer, der die zu speichernden Daten enthält.\\
+\texttt{size} Die Größe des Buffers\\
+\texttt{return} Gibt \texttt{0} zurück wenn erfolgreich, ansonsten \texttt{-1}.\\
+\begin{verbatim}
+void cleanup(void)
+\end{verbatim}
+Wird aufgerufen sobald das Programm terminiert.
+Räumt falls nötig einen in der \texttt{main}-Methode allokierten Buffer auf.\\
+\begin{verbatim}
+void fclose_keep_errno(FILE *file)
+\end{verbatim}
+Helfermethode, die eine Datei schließt und dabei den Wert von errno beibehält.
+Hilfreich falls \texttt{fclose(file)} aufgrund eines vorangegangenen Fehlers aufgerufen werden
+soll, aber \texttt{fclose} nicht den Fehlercode überschreiben soll, falls es auch in dieser zu
+einem Fehler kommt.\\
+Hinweis: Die errno Variable ist in der \texttt{errno.h} definiert.
+Sie wird von verschiedenen Funktionen wie \texttt{fopen()} oder \texttt{ftell()} gesetzt, sobald
+es zu einem Fehler kommt und kann dann benutzt werden um den genauen Fehlergrund auszulesen.\\
+[1.5mm]
+\texttt{file} Die durch \texttt{fclose()} zu schließende Datei.\\
+\begin{verbatim}
+void pkcs7_pad(void *buf, size_t len)
+\end{verbatim}
+Fügt an \texttt{buf} \texttt{len} Bytes hinzu mit \texttt{len} als Inhalt.\\[1.5mm]
+\texttt{buf} Die Stelle an der das Padding hinzugefügt werden soll.\\
+\texttt{len} Die Anzahl an Bytes die hinzugefügt werden sollen.\\
+\begin{verbatim}
+void rc5_cbc_enc(unsigned char *key, size_t keylen, uint32_t *buffer,
+                 size_t len, uint32_t iv)
+\end{verbatim}
+Verschlüsselt die Daten mithilfe des Cipher Block Chaining (CBC) Modes.\\[1.5mm]
+\texttt{key} Der Schlüssel zum Verschlüsseln der Datei.\\
+\texttt{keylen} Die Schlüssellänge.\\
+\texttt{buffer} Die zu verschlüsselnden Daten inklusive dem Padding.\\
+\texttt{len} Die Länge des Buffers.\\
+\texttt{iv} Ein zufälliger Initialisierungsvektor.\\
+\begin{verbatim}
+int rc5_cbc_dec(unsigned char *key, size_t keylen, uint32_t *buffer,
+                size_t len, uint32_t iv)
+\end{verbatim}
+Entschlüsselt die Daten mithilfe des Cipher Block Chaining (CBC) Modes.\\[1.5mm]
+\texttt{key} Der Schlüssel zum Entschlüsseln der Datei.\\
+\texttt{keylen} Die Schlüssellänge.\\
+\texttt{buffer} Die zu entschlüsselnden Daten inklusive dem Padding.\\
+\texttt{len} Die Länge des Buffers.\\
+\texttt{iv} Der Initialisierungsvektor mit dem die Datei verschlüsselt wurde.\\
+\texttt{return} Die Anzahl der entschlüsselten Bytes ohne Padding.\\
+\begin{verbatim}
+void rc5_init(unsigned char *key, size_t keylen, void *l)
+\end{verbatim}
+Führt das Keysetup durch.\\[1.5mm]
+Die ursprüngliche Methodendefinition aus der Angabe wurde hier bearbeitet.
+Der Parameter \texttt{void *s} wurde entfernt.
+Dieser zeigte auf allokierten Speicherbereich, in welchem die erweiterte Schlüsseltabelle nach
+Berechnung abgelegt werden konnte.
+Die Schlüsseltabelle ändert sich jedoch aufgrund der festgesetzten Parameter (RC5-16/16/b) nicht
+und wird deswegen vorberechnet in der \texttt{.data}-Sektion gespeichert.
+Die ursprüngliche Berechnung wurde mit \texttt{key\_expansion.S} und \texttt{objdump}
+durchgeführt.\\[1.5mm]
+\texttt{key} Der Schlüssel zum ver- oder entschlüsseln der Datei.\\
+\texttt{keylen} Die Schlüssellänge.\\
+\texttt{l} L ist der Pointer auf das Array aus 16-Bit Worten bestehend aus dem Schlüssel, der
+gegebenenfalls mit Nullen aufgefüllt wird.
+\begin{verbatim}
+void rc5_enc(uint32_t *buffer)
+\end{verbatim}
+Führt die eigentliche RC5 Verschlüsselung auf einem 32-Bit Block durch.\\[1.5mm]
+\texttt{buffer} Adresse auf 4 Bytes, die verschlüsselt werden sollen.\\
+\begin{verbatim}
+void rc5_dec(uint32_t *buffer)
+\end{verbatim}
+Führt die eigentliche RC5 Entschlüsselung auf einem 32-Bit Block durch.\\[1.5mm]
+\texttt{buffer} Adresse auf 4 Bytes, die entschlüsselt werden sollen.
+
+\subsection{Dateiaufbau}
+Im Folgenden ist der Aufbau einer von der RC5-Implementierung verschlüsselten Datei aufgezeigt,
+wobei der Initialisierungsvektor selbst nicht verschlüsselt wird.\\[1.5mm]
+\begin{tabularx}{\textwidth}{|X|X|X|}
+    \hline
+    \centering Plaintext & \centering Padding & \centering\arraybackslash Initialisierungsvektor\\
+    \hline
+\end{tabularx}\\[1.5mm]
+Siehe \hyperref[sec:Initialisierungsvektor]{3.1 Initialisierungsvektor} für dessen nähere
+Beschreibung.
 
 \section{Ergebnisse}
 

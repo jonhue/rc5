@@ -221,7 +221,7 @@ int write_file(const char *restrict path, const void *restrict buffer, size_t si
 /**
  * Helfermethode, die eine Datei schließt und dabei den Wert von errno beibehält. Hilfreich falls
  * fclose(file) aufgrund eines vorangeganenen Fehlers aufgerufen werden soll, aber fclose nicht
- * den Fehlercode überschreiben soll, falls auch in dieser es zu einem Fehler kommt.
+ * den Fehlercode überschreiben soll, falls es auch in dieser zu einem Fehler kommt.
  *
  * @param file Die zu schließende Datei.
  */
