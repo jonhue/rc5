@@ -78,7 +78,7 @@ Damit sind zur Beurteilung der Sicherheit von RC5 insbesondere die Rundenanzahl 
 
 Das Bundesamt für Sicherheit in der Informationstechnik (BSI) schlägt für Blockchiffren wie RC5 eine minimale Schlüssellänge von $128$ Bits vor.\cite[p.21]{bsi}
 
-\paragraph{Mode of Operation} In der Praxis werden Blockchiffren in der Regel mit einem Mode of Operation umgesetzt, mithilfe dessen auch Nachrichten variabler Länge verschlüsselt werden können. Entscheidend ist für deren Sicherheit, dass der entstehende Ciphertext \textit{pseudorandom} --- ohne Wissen über Plaintext oder Schlüssel stochastisch zufällig\cite{pseudorandomness} --- ist.\bigbreak
+\paragraph{Mode of Operation} In der Praxis werden Blockchiffren in der Regel mit einem Mode of Operation umgesetzt, mithilfe dessen auch Nachrichten variabler Länge verschlüsselt werden können. Entscheidend ist für deren Sicherheit, dass der entstehende Ciphertext pseudorandom ist.\bigbreak
 
 Ist dies nicht der Fall --- resultieren äquivalente Plaintext-Blöcke beispielsweise in äquivalenten Ciphertext-Blöcken ---, dann enthält der Ciphertext Informationen zur Struktur des Plaintextes\cite[p.22]{bsi}. In diesem Fall können Teile des Plaintextes durch \textit{Häufigkeitsanalyse} rekonstruiert werden\cite[p.22]{bsi}, oder sogar der verwendete Schlüssel durch einen \textit{Codebook Attack} gewonnen werden\cite[p.2]{elbaz}.\bigbreak
 
