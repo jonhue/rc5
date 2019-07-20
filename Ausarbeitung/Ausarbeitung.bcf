@@ -1974,24 +1974,24 @@
     <bcf:datasource type="file" datatype="bibtex">bib/Literatur.bib</bcf:datasource>
   </bcf:bibdata>
   <bcf:section number="0">
-    <bcf:citekey order="1">appcrypt</bcf:citekey>
+    <bcf:citekey order="1">rc5rev</bcf:citekey>
     <bcf:citekey order="2">rc5rev</bcf:citekey>
     <bcf:citekey order="3">rc5rev</bcf:citekey>
     <bcf:citekey order="4">rc5rev</bcf:citekey>
     <bcf:citekey order="5">rc5rev</bcf:citekey>
-    <bcf:citekey order="6">rc5rev</bcf:citekey>
-    <bcf:citekey order="7">kaliski+yin</bcf:citekey>
-    <bcf:citekey order="8">bsi</bcf:citekey>
-    <bcf:citekey order="9">pseudorandomness</bcf:citekey>
+    <bcf:citekey order="6">kaliski+yin</bcf:citekey>
+    <bcf:citekey order="7">bsi</bcf:citekey>
+    <bcf:citekey order="8">pseudorandomness</bcf:citekey>
+    <bcf:citekey order="9">bsi</bcf:citekey>
     <bcf:citekey order="10">bsi</bcf:citekey>
-    <bcf:citekey order="11">bsi</bcf:citekey>
-    <bcf:citekey order="12">elbaz</bcf:citekey>
-    <bcf:citekey order="13">bsi</bcf:citekey>
+    <bcf:citekey order="11">elbaz</bcf:citekey>
+    <bcf:citekey order="12">bsi</bcf:citekey>
+    <bcf:citekey order="13">kaliski+yin</bcf:citekey>
     <bcf:citekey order="14">kaliski+yin</bcf:citekey>
-    <bcf:citekey order="15">kaliski+yin</bcf:citekey>
+    <bcf:citekey order="15">knudsen+meier</bcf:citekey>
     <bcf:citekey order="16">knudsen+meier</bcf:citekey>
-    <bcf:citekey order="17">knudsen+meier</bcf:citekey>
-    <bcf:citekey order="18">heys</bcf:citekey>
+    <bcf:citekey order="17">heys</bcf:citekey>
+    <bcf:citekey order="18">nachef</bcf:citekey>
     <bcf:citekey order="19">nachef</bcf:citekey>
     <bcf:citekey order="20">nachef</bcf:citekey>
     <bcf:citekey order="21">nachef</bcf:citekey>
@@ -1999,10 +1999,12 @@
     <bcf:citekey order="23">nachef</bcf:citekey>
     <bcf:citekey order="24">nachef</bcf:citekey>
     <bcf:citekey order="25">nachef</bcf:citekey>
-    <bcf:citekey order="26">nachef</bcf:citekey>
-    <bcf:citekey order="27">rc5rev</bcf:citekey>
+    <bcf:citekey order="26">rc5rev</bcf:citekey>
+    <bcf:citekey order="27">rfc5652</bcf:citekey>
     <bcf:citekey order="28">rfc5652</bcf:citekey>
-    <bcf:citekey order="29">rfc5652</bcf:citekey>
+    <bcf:citekey order="29">ssltls</bcf:citekey>
+    <bcf:citekey order="30">wep</bcf:citekey>
+    <bcf:citekey order="31">appcrypt</bcf:citekey>
   </bcf:section>
   <!-- SORTING TEMPLATES -->
   <bcf:sortingtemplate name="nty">
