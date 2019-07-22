@@ -30,7 +30,7 @@ long read_file(const char *restrict path, void *restrict buffer, size_t size) {
 
         // "File position indicator" am Ende der Datei, ftell() gibt also Dateigröße in Bytes zurück
         size = ftell(file);
-        if (size == -1) {
+        if (size == -1u) {
             fclose_keep_errno(file);
             return -1;
         }

@@ -95,7 +95,7 @@ int main(int argc, char **argv) {
     const char *restrict outputFile = argc == 4 ? argv[3] : argv[2];
 
     size = read_file(inputFile, NULL, 0);
-    if (size == -1) {
+    if (size == -1u) {
         // Fehler beim Öffnen oder Bestimmen der Dateigröße
         err(EX_IOERR, "%s", inputFile);
     }
@@ -168,7 +168,7 @@ int main(int argc, char **argv) {
 }
 
 void pkcs7_pad(void *buf, size_t len) {
-    for (int i = 0; i < len; i++) {
+    for (unsigned int i = 0; i < len; i++) {
         ((uint8_t *) buf)[i] = len;
     }
 }
