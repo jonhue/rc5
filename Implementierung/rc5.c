@@ -9,8 +9,12 @@
 #define BLOCKSIZE 4
 #define HALFBLOCK BLOCKSIZE/2
 
+int print_progress(int progress, size_t unit, int last_percentage);
+void print_done();
+
 void *data = NULL;
 size_t size = -1;
+int verbose = 0;
 
 void cleanup(void) {
     if (data != NULL) {
@@ -25,8 +29,8 @@ void cleanup(void) {
 void usage(const char *restrict program_name) {
     errx(EX_USAGE,
          "Usage: %s <command>\n\n"
-         "    %s enc <key> <inputFile> [outputFile] [-m <mode>]\n"
-         "    %s dec <key> <inputFile> [outputFile] [-m <mode>]\n\n"
+         "    %s enc <key> <inputFile> [outputFile] [-m <mode>] [-v]\n"
+         "    %s dec <key> <inputFile> [outputFile] [-m <mode>] [-v]\n\n"
          "where <mode> is one of:\n"
          "    cbc, ctr, ecb",
          program_name, program_name, program_name);
@@ -38,17 +42,8 @@ int main(int argc, char **argv) {
 
     int encrypt = 0, decrypt = 0, mode = 0;
 
-    const struct option longopts[] = {
-            {"encrypt", no_argument, NULL, 'e'}, // entweder --encrypt oder -e
-            {"decrypt", no_argument, NULL, 'd'}, // entweder --decrypt oder -d
-            {NULL,      no_argument, NULL, 0}
-            // Aus der man page von getopt_long:
-            // "The last element of the longopts array has to be filled with zeroes"
-            // Ansonsten kann es bei nicht bekanntem Argument zu einem segmentation fault kommen
-    };
-
     int opt;
-    while ((opt = getopt_long(argc, argv, "m:", longopts, NULL)) != -1) {
+    while ((opt = getopt(argc, argv, "m:v")) != -1) {
         switch (opt) {
             case 'm':
                 if (strcmp(optarg, "cbc") == 0) {
@@ -58,9 +53,11 @@ int main(int argc, char **argv) {
                 } else if (strcmp(optarg, "ecb") == 0) {
                     mode = 2;
                 } else {
-                    mode = -1;
+                    usage(program_name);
                 }
                 break;
+            case 'v':
+                verbose = 1;
         }
     }
 
@@ -80,15 +77,6 @@ int main(int argc, char **argv) {
     } else {
         usage(program_name);
     }
-
-    if (mode == 2)
-        printf("Using ECB mode...\n");
-    else if (mode == 1)
-        printf("Using CTR mode...\n");
-    else if (mode == 0)
-        printf("Using CBC mode...\n");
-    else
-        usage(program_name);
 
     const char *restrict key = argv[1];
     const char *restrict inputFile = argv[2];
@@ -126,10 +114,22 @@ int main(int argc, char **argv) {
 
         // Verschlüssele Dateiinhalt + padding
         if (mode == 2) {
+            if (verbose) {
+                printf("Using ECB mode for encryption...\n");
+            }
+
             rc5_ecb_enc((unsigned char *) key, strlen(key), data, size);
         } else if (mode == 1) {
+            if (verbose) {
+                printf("Using CTR mode for encryption...\n");
+            }
+
             rc5_ctr((unsigned char *) key, strlen(key), data, size);
         } else if (mode == 0) {
+            if (verbose) {
+                printf("Using CBC mode for encryption...\n");
+            }
+
             uint32_t iv = arc4random(); // Initialisierungsvektor
             rc5_cbc_enc((unsigned char *) key, strlen(key), data, size_text + size_pad, iv);
 
@@ -144,14 +144,26 @@ int main(int argc, char **argv) {
 
         if (mode > 0) {
             if (mode == 2) {
+                if (verbose) {
+                    printf("Using ECB mode for decryption...\n");
+                }
+
                 rc5_ecb_dec((unsigned char *) key, strlen(key), data, size);
             } else if (mode == 1) {
+                if (verbose) {
+                    printf("Using CTR mode for decryption...\n");
+                }
+
                 rc5_ctr((unsigned char *) key, strlen(key), data, size);
             }
 
             // reduziere size um Länge des Paddings
             size = size - ((uint8_t *) data)[size - 1];
         } else if (mode == 0) {
+            if (verbose) {
+                printf("Using CBC mode for decryption...\n");
+            }
+
             uint32_t iv = ((uint32_t *) data)[size / sizeof(uint32_t) - 1]; // Initialisierungsvektor am Dateiende
             rc5_cbc_dec((unsigned char *) key, strlen(key), data, size - size_iv, iv);
 
@@ -185,10 +197,19 @@ void rc5_cbc_enc(unsigned char *key, size_t keylen, uint32_t *buffer, size_t len
     *buffer ^= iv;
     rc5_enc(buffer);
 
+    int progress = 0;
     for (size_t i = 1; i < len / BLOCKSIZE; i++) {
         uint32_t *lastblock = buffer++;
         *buffer ^= *lastblock;
         rc5_enc(buffer);
+
+        if (verbose) {
+            progress = print_progress(i, len / BLOCKSIZE, progress);
+        }
+    }
+
+    if (verbose) {
+        print_done();
     }
 
     reset_registers();
@@ -210,11 +231,20 @@ void rc5_cbc_dec(unsigned char *key, size_t keylen, uint32_t *buffer, size_t len
     rc5_dec(buffer);
     *buffer ^= iv;
 
+    int progress = 0;
     for (size_t i = 1; i < len / BLOCKSIZE; i++) {
         uint32_t curenc = *(++buffer);
         rc5_dec(buffer);
         *buffer ^= lastenc;
         lastenc = curenc;
+
+        if (verbose) {
+            progress = print_progress(i, len / BLOCKSIZE, progress);
+        }
+    }
+
+    if (verbose) {
+        print_done();
     }
 
     reset_registers();
@@ -232,6 +262,7 @@ void rc5_ctr(unsigned char *key, size_t keylen, uint32_t *buffer, size_t len) {
     rc5_init(key, keylen, l);
 
     size_t i = 0;
+    int progress = 0;
     while (i < len / BLOCKSIZE) {
         if (i + 7 < len / BLOCKSIZE) {
             uint32_t encrypted_counters[8] = {i, i+1, i+2, i+3, i+4, i+5, i+6, i+7};
@@ -246,6 +277,14 @@ void rc5_ctr(unsigned char *key, size_t keylen, uint32_t *buffer, size_t len) {
             *(buffer++) ^= encrypted_i;
             i++;
         }
+
+        if (verbose) {
+            progress = print_progress(i, len / BLOCKSIZE, progress);
+        }
+    }
+
+    if (verbose) {
+        print_done();
     }
 
     reset_registers();
@@ -263,6 +302,7 @@ void rc5_ecb_enc(unsigned char *key, size_t keylen, uint32_t *buffer, size_t len
     rc5_init(key, keylen, l);
 
     size_t i = 0;
+    int progress = 0;
     while (i < len / BLOCKSIZE) {
         if (i + 7 < len / BLOCKSIZE) {
             rc5_enc_128(buffer);
@@ -271,6 +311,14 @@ void rc5_ecb_enc(unsigned char *key, size_t keylen, uint32_t *buffer, size_t len
             rc5_enc(buffer++);
             i++;
         }
+
+        if (verbose) {
+            progress = print_progress(i, len / BLOCKSIZE, progress);
+        }
+    }
+
+    if (verbose) {
+        print_done();
     }
 
     reset_registers();
@@ -287,12 +335,35 @@ void rc5_ecb_dec(unsigned char *key, size_t keylen, uint32_t *buffer, size_t len
     // Keysetup
     rc5_init(key, keylen, l);
 
+    int progress = 0;
     for (size_t i = 0; i < len / BLOCKSIZE; i++) {
         rc5_dec(buffer++);
+
+        if (verbose) {
+            progress = print_progress(i, len / BLOCKSIZE, progress);
+        }
+    }
+
+    if (verbose) {
+        print_done();
     }
 
     reset_registers();
     memset(l, 0, l_len);
     memset(key, 0, keylen);
     free(l);
+}
+
+int print_progress(int progress, size_t unit, int last_percentage) {
+    int percentage = (100 * progress) / unit;
+    if (percentage > last_percentage) {
+        printf("\rIn progress %d%%", percentage);
+        fflush(stdout);
+    }
+
+    return percentage;
+}
+
+void print_done() {
+    printf("\rDone!\n");
 }
