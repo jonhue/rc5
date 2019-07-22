@@ -9,7 +9,7 @@
 #define BLOCKSIZE 4
 #define HALFBLOCK BLOCKSIZE/2
 
-int print_progress(int progress, size_t unit, int last_percentage);
+int print_progress(size_t progress, size_t unit, int last_percentage);
 void print_done();
 
 void *data = NULL;
@@ -172,6 +172,9 @@ int main(int argc, char **argv) {
         }
     }
 
+    if (verbose) {
+        printf("Writing to file...\n");
+    }
     if (write_file(outputFile, data, size)) {
         err(EX_IOERR, "%s", outputFile);
     }
@@ -354,7 +357,7 @@ void rc5_ecb_dec(unsigned char *key, size_t keylen, uint32_t *buffer, size_t len
     free(l);
 }
 
-int print_progress(int progress, size_t unit, int last_percentage) {
+int print_progress(size_t progress, size_t unit, int last_percentage) {
     int percentage = (100 * progress) / unit;
     if (percentage > last_percentage) {
         printf("\rIn progress %d%%", percentage);
@@ -365,5 +368,5 @@ int print_progress(int progress, size_t unit, int last_percentage) {
 }
 
 void print_done() {
-    printf("\rDone!\n");
+    printf("\rDone!          \n");
 }
