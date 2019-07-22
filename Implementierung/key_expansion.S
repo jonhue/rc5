@@ -19,5 +19,4 @@ key_expansion:
     inc rcx
     cmp rcx, 34 # 2*r + 2 = 34 mit r = 16
     jne .Lkeyexploop
-
 ret
