@@ -37,7 +37,7 @@ int main(int argc, char **argv) {
     if (((uint32_t *) origin)[14] != 40 && // Nur Version 3
         ((uint16_t *) origin)[28] < 24 &&  // Keine Indizierung
         ((uint32_t *) origin)[30] != 0) { // keine Kompression
-        printf("Es wird nur BMP 3 ohne Indizierung und Kompression unterstützt\n");
+        printf("Only BMP version 3 without compression and indexed colors is supported\n");
     }
 
     if (read_file(pathOrigin, origin, BMP_HEADER_LENGTH)) {
