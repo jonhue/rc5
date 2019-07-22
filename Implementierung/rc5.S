@@ -1,7 +1,9 @@
 .intel_syntax noprefix
 .global rc5_init
 .global rc5_enc
+.global rc5_enc_128
 .global rc5_dec
+.global reset_registers
 
 .data
 
@@ -114,7 +116,7 @@ rc5_init:
     pop r14
     pop r13
     pop r12
-    ret
+ret
 
 rc5_enc:
 # rdi: Buffer, der den zu verschlüsselnden Block enthält (32 Bit)
@@ -123,10 +125,10 @@ rc5_enc:
 # r8d: gesamter Block
 # r9w: linker Halbblock
 # r10w: rechter Halbblock
-# r11: temporäres Register mit den nächsten 4 Rundenschlüsseln
-# r11w: Als nächtes verwendeter Rundenschlüssel
-# edx: Counter, der noch nicht verwendete Schlüssel zählt
-# rax: Zählt, wieviele der 4 Schlüssel aus r11 bereits verwendet wurden
+# xmm0: temporäres Register mit den nächsten 8 Rundenschlüsseln
+# r11d: Als nächstes verwendete Rundenschlüssel
+# rdx: Counter, der noch nicht verwendete Schlüssel zählt
+# rax: Zählt, wieviele der 8 Schlüssel aus xmm0 bereits verwendet wurden
 
     # Adresse der Rundenschlüssel laden
     lea rsi, [rip + roundkeys]
@@ -146,18 +148,22 @@ rc5_enc:
     add rsi, 2
 
     # 16 Runden sollen durchgeführt werden
-    mov edx, 16
+    mov rdx, 16
     # Kennzeichnung, sodass am Anfang neue Schlüssel geladen werden
-    mov rax, 4
+    mov rax, 8
 
 .Lencloop:
-    # 4 neue Schlüssel aus dem Speicher laden, falls keine mehr in r11 verfügbar sind
-    cmp rax, 4
+    # 8 neue Schlüssel aus dem Speicher laden, falls keine mehr in r11 verfügbar sind
+    cmp rax, 8
     jne .Lnextenc
     mov rax, 0
-    mov r11, qword ptr [rsi]
-    add rsi, 8
+    movdqu xmm0, xmmword ptr [rsi]
+    add rsi, 16
 .Lnextenc:
+    # Nächsten Rundenschlüssel in die unteren Bits holen
+    movd r11d, xmm0
+    pshufd xmm0, xmm0, 0b00111001
+
     # Linken Halbblock verschlüsseln
     xor r9w, r10w
     # Um um r10w Bits zu rotieren, muss der Wert in cl geschrieben werden, da cl das einzige
@@ -168,7 +174,7 @@ rc5_enc:
     add r9w, r11w
 
     # Nächsten Rundenschlüssel in die unteren Bits holen
-    shr r11, 16
+    shr r11d, 16
 
     # Rechten Halbblock verschlüsseln
     xor r10w, r9w
@@ -176,12 +182,9 @@ rc5_enc:
     rol r10w, cl
     add r10w, r11w
 
-    # Nächsten Rundenschlüssel in die unteren Bits holen
-    shr r11, 16
-
     add rax, 2
 .Lenccondition:
-    dec edx
+    dec rdx
     jnz .Lencloop
 
     # Zusammenfügen der Halbblöcke und Zurückschreiben in Speicher
@@ -190,8 +193,6 @@ rc5_enc:
     mov r8w, r9w
     mov dword ptr [rdi], r8d
 ret
-
-
 
 rc5_dec:
 # Registerverwendung ist die selbe wie bei rc5_enc
@@ -208,21 +209,23 @@ rc5_dec:
     mov r10w, r8w
 
     # 16 Runden sind durchzuführen
-    mov edx, 16
+    mov rdx, 16
     # Es muss beim letzten Schlüssel begonnen werden, daher Addition mit 34 * 2
     add rsi, 68
-    mov rax, 4
+    mov rax, 8
 
 .Ldecloop:
-    # 4 neue Schlüssel aus dem Speicher laden, falls keine mehr in r11 verfügbar sind
-    cmp rax, 4
+    # 8 neue Schlüssel aus dem Speicher laden, falls keine mehr in r11 verfügbar sind
+    cmp rax, 8
     jne .Lnextdec
     mov rax, 0
-    sub rsi, 8
-    mov r11, qword ptr [rsi]
+    sub rsi, 16
+    movdqu xmm0, xmmword ptr [rsi]
 .Lnextdec:
     # Nächsten Rundenschlüssel in die unteren Bits holen
-    rol r11, 16
+    pshufd xmm0, xmm0, 0b10010011
+    movd r11d, xmm0
+    ror r11d, 16
 
     # Rechten Halbblock entschlüsseln
     sub r10w, r11w
@@ -234,7 +237,7 @@ rc5_dec:
     xor r10w, r9w
 
     # Nächsten Rundenschlüssel in die unteren Bits holen
-    rol r11, 16
+    shr r11d, 16
 
     # Linken Halbblock entschlüsseln
     sub r9w, r11w
@@ -244,7 +247,7 @@ rc5_dec:
 
     add rax, 2
 .Ldeccondition:
-    dec edx
+    dec rdx
     jnz .Ldecloop
 
     # Anti-Key-Whitening
@@ -253,11 +256,203 @@ rc5_dec:
     sub rsi, 2
     sub r9w, word ptr [rsi]
 
-    # Zusammenfügen der Halbblöcke
+    # Zusammenfügen der Halbblöcke und Zurückschreiben in Speicher
     mov r8w, r10w
     shl r8d, 16
     mov r8w, r9w
-
-    # Zurückschreiben in Speicher
     mov dword ptr [rdi], r8d
+ret
+
+rc5_enc_128:
+# rdi: Buffer, der die Startadresse der 8 zu verschlüsselnden Blöcke enthält (je 32 Bit)
+# Lokale Variablen:
+# rsi: Buffer, der die Rundenschlüssel enthält (34 16-bit-Schlüssel, 34 = 16 * 2 + 2)
+# xmm0: linker Halbblock
+# xmm1: rechter Halbblock
+# xmm2: Als nächtes verwendeter Rundenschlüssel, temporäre Nutzung beim Laden/Schreiben der Halbblöcke
+# r8d: temporäres Register
+# xmm3: temporäres Register mit den nächsten 8 Rundenschlüsseln
+# r11d: Als nächtes verwendete Rundenschlüssel
+# rdx: Counter, der noch nicht verwendete Schlüssel zählt
+# rax: Zählt, wieviele der 8 Schlüssel aus xmm0 bereits verwendet wurden
+
+    # Adresse der Rundenschlüssel laden
+    lea rsi, [rip + roundkeys]
+
+    # 8 Blöcke aus Speicher holen
+    mov r8w, word ptr [rdi + 28]
+    shl r8d, 16
+    mov r8w, word ptr [rdi + 24]
+    movd xmm0, r8d
+    mov r8w, word ptr [rdi + 30]
+    shl r8d, 16
+    mov r8w, word ptr [rdi + 26]
+    movd xmm1, r8d
+    mov rcx, 2
+.Lenc128loadloop:
+    mov r8w, word ptr [rdi + 8*rcx + 4]
+    shl r8d, 16
+    mov r8w, word ptr [rdi + 8*rcx]
+    movd xmm2, r8d
+    pshufd xmm0, xmm0, 0b10010011 # Ein Doubleword nach links rotieren
+    paddw xmm0, xmm2
+    mov r8w, word ptr [rdi + 8*rcx + 6]
+    shl r8d, 16
+    mov r8w, word ptr [rdi + 8*rcx + 2]
+    movd xmm2, r8d
+    pshufd xmm1, xmm1, 0b10010011 # Ein Doubleword nach links rotieren
+    paddw xmm1, xmm2
+    dec rcx
+    cmp rcx, 0
+    jge .Lenc128loadloop
+
+    # Key-Whitening auf linken Halbblöcken
+    mov r8w, word ptr [rsi]
+    shl r8d, 16
+    mov r8w, word ptr [rsi]
+    movd xmm2, r8d
+    shufps xmm2, xmm2, 0
+    paddw xmm0, xmm2
+    add rsi, 2
+
+    # Key-Whitening auf rechten Halbblöcken
+    mov r8w, word ptr [rsi]
+    shl r8d, 16
+    mov r8w, word ptr [rsi]
+    movd xmm2, r8d
+    shufps xmm2, xmm2, 0
+    paddw xmm1, xmm2
+    add rsi, 2
+
+    # 16 Runden sollen durchgeführt werden
+    mov rdx, 16
+    # Kennzeichnung, sodass am Anfang neue Schlüssel geladen werden
+    mov rax, 8
+
+.Lenc128loop:
+    # 8 neue Schlüssel aus dem Speicher laden, falls keine mehr in r11 verfügbar sind
+    cmp rax, 8
+    jne .Lnextenc128
+    mov rax, 0
+    movdqu xmm3, xmmword ptr [rsi]
+    add rsi, 16
+.Lnextenc128:
+    # Lade neuen Schlüssel in xmm2
+    movd r11d, xmm3
+    pshufd xmm3, xmm3, 0b00111001
+    mov r8w, r11w
+    shl r8d, 16
+    mov r8w, r11w
+    movd xmm2, r8d
+    shufps xmm2, xmm2, 0
+
+    # Linken Halbblock verschlüsseln
+    pxor xmm0, xmm1
+    call prol_128
+    paddw xmm0, xmm2
+
+    # Nächsten Rundenschlüssel in die unteren Bits holen
+    shr r11d, 16
+
+    # Lade neuen Schlüssel in xmm2
+    mov r8w, r11w
+    shl r8d, 16
+    mov r8w, r11w
+    movd xmm2, r8d
+    shufps xmm2, xmm2, 0
+
+    # Rechten Halbblock verschlüsseln
+    # xmm1 xor xmm0 und xmm1 und xmm0 vertauschen
+    pxor xmm0, xmm1
+    pxor xmm1, xmm0
+    call prol_128
+    # xmm1 und xmm0 zurücktauschen
+    pxor xmm1, xmm0
+    pxor xmm0, xmm1
+    pxor xmm1, xmm0
+    paddw xmm1, xmm2
+
+    add rax, 2
+.Lenc128condition:
+    dec rdx
+    jnz .Lenc128loop
+
+    # Zusammenfügen der 8 Halbblöcke und Zurückschreiben in Speicher
+    movdqa xmm2, xmm0
+    punpcklwd xmm0, xmm1
+    punpckhwd xmm2, xmm1
+    movdqa [rdi], xmm0
+    movdqa [rdi + 16], xmm2
+ret
+
+prol_128:
+# xmm0: Register, dessen Inhalte nach links rotiert werden
+# xmm1: Register, das angibt, um wie viel rotiert wird
+# Lokale Variablen:
+# xmm6: Temporäres Register
+# xmm7: Temporäres Register
+# r10: Zähler
+# cl: Temporäres Register für das Rotieren
+# x8d: Temporäres Register für Words aus xmm0
+# x9d: Temporäres Register für Words aus xmm1
+
+    # 16-Bit Wörter schrittweise auslesen, rotieren, und in xmm6 schreiben
+    pxor xmm6, xmm6
+    mov r10, 3
+.Lprol128loadloop:
+    movd r8d, xmm0
+    pshufd xmm0, xmm0, 0b00111001
+    movd r9d, xmm1
+    pshufd xmm1, xmm1, 0b00111001
+    mov cl, r9b
+    rol r8w, cl
+    ror r8d, 16
+    ror r9d, 16
+    mov cl, r9b
+    rol r8w, cl
+    ror r8d, 16
+    movd xmm7, r8d
+    paddw xmm6, xmm7
+    pshufd xmm6, xmm6, 0b00111001
+    dec r10
+    cmp r10, 0
+    jge .Lprol128loadloop
+
+    # 16-Bit Wörter aus xmm7 in umgekehrter Reihenfolge in xmm0 schreiben
+    movdqa xmm0, xmm6
+ret
+
+reset_registers:
+# Lokale Variablen:
+# rdx: Zähler
+
+    # Adresse der Rundenschlüssel laden und xmm0 zurücksetzen
+    lea rsi, [rip + roundkeys]
+    pxor xmm0, xmm0
+
+    # Zurücksetzen der Rundenschlüssel
+    mov rdx, 0
+.Lresetroundkeysloop:
+    movdqu xmmword ptr [rsi + rdx], xmm0
+    add rdx, 16
+    cmp rdx, 52
+    jle .Lresetroundkeysloop
+
+    mov dword ptr [rsi + 64], 0
+
+    # Zurücksetzen der Register
+    pxor xmm1, xmm1
+    pxor xmm2, xmm2
+    pxor xmm3, xmm3
+    pxor xmm6, xmm6
+    pxor xmm7, xmm7
+    xor r11, r11
+    xor r10, r10
+    xor r9, r9
+    xor r8, r8
+    xor rax, rax
+    xor rcx, rcx
+    xor rdx, rdx
+    xor rdi, rdi
+    xor rsi, rsi
 ret
