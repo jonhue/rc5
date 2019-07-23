@@ -5,18 +5,14 @@
 #include "rc5.h"
 #include "bufferio.h"
 
-#define ROUNDS 16
-#define BLOCKSIZE 4
-#define HALFBLOCK BLOCKSIZE/2
-
-int print_progress(size_t progress, size_t unit, int last_percentage);
-void print_done();
+extern void reset_registers();
+static int print_progress(size_t progress, size_t unit, int last_percentage);
 
 void *data = NULL;
 size_t size = -1;
 int verbose = 0;
 
-void cleanup(void) {
+static void cleanup(void) {
     if (data != NULL) {
         if (size > 0) {
             memset(data, 0, size);
@@ -26,7 +22,7 @@ void cleanup(void) {
     }
 }
 
-void usage(const char *restrict program_name) {
+static void usage(const char *restrict program_name) {
     errx(EX_USAGE,
          "Usage: %s <command>\n\n"
          "    %s enc <key> <inputFile> [outputFile] [-m <mode>] [-v]\n"
@@ -173,10 +169,14 @@ int main(int argc, char **argv) {
     }
 
     if (verbose) {
-        printf("Writing to file...\n");
+        printf("\rWriting to file...");
+        fflush(stdout);
     }
     if (write_file(outputFile, data, size)) {
         err(EX_IOERR, "%s", outputFile);
+    }
+    if (verbose) {
+        printf("\rDone!             \n");
     }
 
     exit(EXIT_SUCCESS);
@@ -211,10 +211,6 @@ void rc5_cbc_enc(unsigned char *key, size_t keylen, uint32_t *buffer, size_t len
         }
     }
 
-    if (verbose) {
-        print_done();
-    }
-
     reset_registers();
     memset(l, 0, l_len);
     memset(key, 0, keylen);
@@ -244,10 +240,6 @@ void rc5_cbc_dec(unsigned char *key, size_t keylen, uint32_t *buffer, size_t len
         if (verbose) {
             progress = print_progress(i, len / BLOCKSIZE, progress);
         }
-    }
-
-    if (verbose) {
-        print_done();
     }
 
     reset_registers();
@@ -286,10 +278,6 @@ void rc5_ctr(unsigned char *key, size_t keylen, uint32_t *buffer, size_t len) {
         }
     }
 
-    if (verbose) {
-        print_done();
-    }
-
     reset_registers();
     memset(l, 0, l_len);
     memset(key, 0, keylen);
@@ -320,10 +308,6 @@ void rc5_ecb_enc(unsigned char *key, size_t keylen, uint32_t *buffer, size_t len
         }
     }
 
-    if (verbose) {
-        print_done();
-    }
-
     reset_registers();
     memset(l, 0, l_len);
     memset(key, 0, keylen);
@@ -347,17 +331,13 @@ void rc5_ecb_dec(unsigned char *key, size_t keylen, uint32_t *buffer, size_t len
         }
     }
 
-    if (verbose) {
-        print_done();
-    }
-
     reset_registers();
     memset(l, 0, l_len);
     memset(key, 0, keylen);
     free(l);
 }
 
-int print_progress(size_t progress, size_t unit, int last_percentage) {
+static int print_progress(size_t progress, size_t unit, int last_percentage) {
     int percentage = (100 * progress) / unit;
     if (percentage > last_percentage) {
         printf("\rIn progress %d%%", percentage);
@@ -365,8 +345,4 @@ int print_progress(size_t progress, size_t unit, int last_percentage) {
     }
 
     return percentage;
-}
-
-void print_done() {
-    printf("\rDone!          \n");
 }
