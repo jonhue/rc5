@@ -1,7 +1,7 @@
 #include <errno.h>
 #include "bufferio.h"
 
-void fclose_keep_errno(FILE *file);
+static void fclose_keep_errno(FILE *file);
 
 /**
  * Liest die Datei in path in buffer. Falls buffer NULL ist, gibt die Funktion die Dateigröße
@@ -85,7 +85,7 @@ int write_file(const char *restrict path, const void *restrict buffer, size_t si
  *
  * @param file Die zu schließende Datei.
  */
-void fclose_keep_errno(FILE *file) {
+static void fclose_keep_errno(FILE *file) {
     int tmp = errno;
     fclose(file);
     errno = tmp;
