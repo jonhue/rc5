@@ -87,11 +87,11 @@ Knudsen und Meier zeigen zwar, dass die Komplexität des von Kaliski und Yin vor
     \epsilon \geq \frac{\sigma^2}{2^n}
 \]
 
-wobei $\sigma$ der Anahl der verarbeiteten Blöcke und $n = 2w$ der Blockgröße entspricht.\bigbreak
+wobei $\sigma$ der Anahl der verarbeiteten Blöcke und $n = 2w$ der Blockgröße entspricht.\cite[p.24]{bellare}\bigbreak
 
 Die minimale Wahrscheinlichkeit eines generischen Angriffs auf eine 32-Bit Blockchiffre ist somit $2^{-32}$. Aus diesem Grund eignen sich $32$-Bit Blockchiffren im Allgemeinen und RC5-16/16/b im Speziellen nicht für die Verschlüsselung von großen Datenmengen.\bigbreak
 
-Die RC5 Chiffre kann damit bei für die Anwendung ausreichend großer Blockgröße und Rundenanzahl, $b >= 16$ und Nutzung eines geeigneten Betriebsmodus als sicher gelten. RC5-16/16/b eignet sich lediglich zur Verschlüsselung von kleinen Datenmengen.
+Die RC5 Chiffre kann damit bei für die Anwendung ausreichend großer Blockgröße und Rundenanzahl, $b >= 16$ und Nutzung eines geeigneten Betriebsmodus als sicher gelten. RC5-16/16/b eignet sich in der Regel lediglich zur Verschlüsselung von kleinen Datenmengen für die $\sigma \ll 2^{16} = 2^{n/2}$ gilt.
 
 \subsection{Feistelchiffren}
 
