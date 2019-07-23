@@ -1,7 +1,11 @@
 #include <bsd/stdlib.h>
 
-#ifndef RC5_RC5_H
-#define RC5_RC5_H
+#ifndef RC5_H
+#define RC5_H
+
+#define ROUNDS 16
+#define BLOCKSIZE 4
+#define HALFBLOCK BLOCKSIZE/2
 
 #define ROUNDS 16
 #define BLOCKSIZE 4
