@@ -65,13 +65,13 @@ Durch die Parametrisierung von RC5\cite[p.2]{rc5rev} unterstützt die Chiffre so
     \item Andererseits sollen die frei wählbaren Parameter $r$ und $b$ dem Nutzer der Chiffre die Entscheidung überlassen, wie viel Sicherheit und welche Performance seine Applikation benötigt.\cite[p.1]{rc5rev}
 \end{enumerate}
 
-Damit sind zur Beurteilung der Sicherheit von RC5 insbesondere die Rundenanzahl und die Schlüssellänge zu betrachten.
+Damit sind zur Beurteilung der Sicherheit von RC5 im Allgemeinen insbesondere die Rundenanzahl und die Schlüssellänge zu betrachten. Die Sicherheit von RC5-16/16/b ist auch von der Blockgröße abhängig.
 
 \paragraph{Schlüssellänge} So wie im Allgemeinen bei Blockchiffren ist auch bei RC5 die Sicherheit der Chiffre stark von der gewählten Schlüssellänge abhängig. RC5 hat den Parameter $b$ mit $b \in \{k \in \mathbb{N}_0 \colon k \leq 255\}$, der die Länge des Schlüssels in Bytes angibt.\cite[p.3]{rc5rev} Die Länge der erweiterten Schlüsseltabelle in Bits ergibt sich durch $2^{(2r + 2)w}$.\cite[p.2]{rc5rev} Der Aufwand für eine \textit{erschöpfende Suche} ist damit $min\{2^{8b}, 2^{(2r + 2)w}\}$.\cite[p.29]{kaliski+yin} Für RC5-16/16/b ist damit der Aufwand einer erschöpfenden Suche allein von $b$ abhängig, solange $b < 68$ gilt.\bigbreak
 
 Das Bundesamt für Sicherheit in der Informationstechnik (BSI) schlägt für Blockchiffren wie RC5 eine minimale Schlüssellänge von $128$ Bits vor.\cite[p.21]{bsi}
 
-\paragraph{Mode of Operation} In der Praxis werden Blockchiffren in der Regel mit einem Mode of Operation umgesetzt, mithilfe dessen auch Nachrichten variabler Länge verschlüsselt werden können. Entscheidend ist für deren Sicherheit, dass der entstehende Ciphertext pseudorandom ist.\bigbreak
+\paragraph{Betriebsmodus} In der Praxis werden Blockchiffren in der Regel mit einem Betriebsmodus umgesetzt, mithilfe dessen auch Nachrichten variabler Länge verschlüsselt werden können. Entscheidend ist für deren Sicherheit, dass der entstehende Ciphertext pseudorandom ist.\bigbreak
 
 Ist dies nicht der Fall --- resultieren äquivalente Plaintext-Blöcke beispielsweise in äquivalenten Ciphertext-Blöcken ---, dann enthält der Ciphertext Informationen zur Struktur des Plaintextes\cite[p.22]{bsi}. In diesem Fall können Teile des Plaintextes durch \textit{Häufigkeitsanalyse} rekonstruiert werden\cite[p.22]{bsi}, oder sogar der verwendete Schlüssel durch einen \textit{Codebook Attack} gewonnen werden\cite[p.2]{elbaz}.\bigbreak
 
@@ -81,7 +81,17 @@ Sichere Operationsmodi sind beispielsweise \textit{Counter Block Chaining (CBC)}
 
 Knudsen und Meier zeigen zwar, dass die Komplexität des von Kaliski und Yin vorgeschlagenen differenziellen Angriffs um einen Faktor von bis zu $512$ reduziert werden kann.\cite[p.2]{knudsen+meier} Allerdings bleibt ein solcher Angriff damit weiterhin sehr unwahrscheinlich. Zudem wurde gezeigt, dass für bestimmte Teile des Schlüsselraums die differentiellen Kryptoanalysen weiter verbessert werden können.\cite[p.13]{knudsen+meier} Allerdings sind für einen effektiven Angriff entweder zu wenige Schlüssel betroffen oder die Anzahl der benötigten Plaintexte weiterhin zu hoch. Heys konnte Ähnliches für lineare Kryptoanalyse zeigen.\cite[p.5]{heys}\bigbreak
 
-Damit kann RC5-16/16/b bei $b >= 16$ und Nutzung eines geeigneten Operationsmodus als sicher gelten.
+\paragraph{Blockgröße} Durch die $32$ Bit Blockgröße von RC5-16/16/b ist die Komplexität eines \textit{generischen Angriffs} durch $2^{32}$ nach oben beschränkt. Damit kann eine untere Schranke $\epsilon$ für die Wahrscheinlichkeit eines Angriffs abgeschätzt werden durch
+
+\[
+    \epsilon \geq \frac{\sigma^2}{2^n}
+\]
+
+wobei $\sigma$ der Anahl der verarbeiteten Blöcke und $n = 2w$ der Blockgröße entspricht.\bigbreak
+
+Die minimale Wahrscheinlichkeit eines generischen Angriffs auf eine 32-Bit Blockchiffre ist somit $2^{-32}$. Aus diesem Grund eignen sich $32$-Bit Blockchiffren im Allgemeinen und RC5-16/16/b im Speziellen nicht für die Verschlüsselung von großen Datenmengen.\bigbreak
+
+Die RC5 Chiffre kann damit bei für die Anwendung ausreichend großer Blockgröße und Rundenanzahl, $b >= 16$ und Nutzung eines geeigneten Betriebsmodus als sicher gelten. RC5-16/16/b eignet sich lediglich zur Verschlüsselung von kleinen Datenmengen.
 
 \subsection{Feistelchiffren}
 
