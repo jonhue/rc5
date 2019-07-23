@@ -3,6 +3,7 @@
 #include <sysexits.h>
 #include <err.h>
 #include "rc5.h"
+#include "test.h"
 #include "bufferio.h"
 
 extern void reset_registers();
@@ -61,22 +62,33 @@ int main(int argc, char **argv) {
     argc -= optind;
     argv += optind;
 
-    if (argc < 3 || argc > 4) {
-        // Keine input Datei oder Schlüssel
-        usage(program_name);
-    }
-
     if (strcmp(argv[0], "enc") == 0) {
         encrypt = 1;
     } else if (strcmp(argv[0], "dec") == 0) {
         decrypt = 1;
+    } else if (strcmp(argv[0], "test") == 0) {
+        if (argc == 2) {
+            run_test(NULL);
+        } else {
+            run_test(argv[1]);
+        }
+        exit(EXIT_SUCCESS);
     } else {
+        usage(program_name);
+    }
+
+    if (argc < 3 || argc > 4) {
+        // Keine Input-Datei oder Schlüssel
         usage(program_name);
     }
 
     const char *restrict key = argv[1];
     const char *restrict inputFile = argv[2];
     const char *restrict outputFile = argc == 4 ? argv[3] : argv[2];
+
+    if(strlen(key) == 0) {
+        errx(EX_DATAERR, "Key may not be empty. Aborting.");
+    }
 
     size = read_file(inputFile, NULL, 0);
     if (size == -1u) {
@@ -134,7 +146,8 @@ int main(int argc, char **argv) {
         }
     } else if (decrypt) {
         // Abbruch, falls die Länge des Ciphertextes kein Vielfaches der Blockgröße ist
-        if (size_text % BLOCKSIZE != 0) {
+        // oder die Datei zu klein ist (mindestens ein ganzer Block und der IV)
+        if (size_text % BLOCKSIZE != 0 || size_text < 4 + size_iv) {
             errx(EX_DATAERR, "%s: Could not decrypt. File is malformed.", inputFile);
         }
 
@@ -152,9 +165,14 @@ int main(int argc, char **argv) {
 
                 rc5_ctr((unsigned char *) key, strlen(key), data, size);
             }
+	    
+            uint8_t size_padding = ((uint8_t *) data)[size - 1];
+            if (size_padding > 4 || size_padding == 0) {
+                errx(EX_DATAERR, "%s: Could not decrypt. File is malformed.", inputFile);
+            }
 
             // reduziere size um Länge des Paddings
-            size = size - ((uint8_t *) data)[size - 1];
+            size = size - size_padding;
         } else if (mode == 0) {
             if (verbose) {
                 printf("Using CBC mode for decryption...\n");
@@ -163,8 +181,13 @@ int main(int argc, char **argv) {
             uint32_t iv = ((uint32_t *) data)[size / sizeof(uint32_t) - 1]; // Initialisierungsvektor am Dateiende
             rc5_cbc_dec((unsigned char *) key, strlen(key), data, size - size_iv, iv);
 
+            uint8_t size_padding = ((uint8_t *) data)[size - size_iv - 1];
+            if (size_padding > 4 || size_padding == 0) {
+                errx(EX_DATAERR, "%s: Could not decrypt. File is malformed.", inputFile);
+            }
+
             // reduziere size um Länge des Paddings und des Initialisierungsvektors
-            size = size - size_iv - ((uint8_t *) data)[size - size_iv - 1];
+            size = size - size_iv - size_padding;
         }
     }
 

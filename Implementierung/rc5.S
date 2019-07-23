@@ -4,6 +4,7 @@
 .global rc5_enc_128
 .global rc5_dec
 .global reset_registers
+.global get_roundkeys_address
 
 .data
 
@@ -16,6 +17,11 @@ roundkeys: .hword \
     0x7ec1, 0x1cf8
 
 .text
+
+# Dient zum Testen. Gibt die Adresse der roundkeys zurück, damit diese zwischengespeichert und später wiederhergestellt werden können.
+get_roundkeys_address:
+    lea rax, [rip + roundkeys]
+    ret
 
 rc5_init:
 # rdi: Adresse des Schlüssels *K
