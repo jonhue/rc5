@@ -6,7 +6,12 @@
 #include "test.h"
 #include "bufferio.h"
 
+extern uint16_t roundkeys[];
+
 extern void reset_registers();
+
+static void lock(const void *addr, size_t len);
+
 static int print_progress(size_t progress, size_t unit, int last_percentage);
 
 void *data = NULL;
@@ -55,6 +60,9 @@ int main(int argc, char **argv) {
                 break;
             case 'v':
                 verbose = 1;
+                break;
+            default:
+                usage(program_name);
         }
     }
 
@@ -83,6 +91,10 @@ int main(int argc, char **argv) {
     }
 
     const char *restrict key = argv[1];
+    lock(key, strlen(key)); // Key nicht in einen Swap speichern
+    // Roundkeys werden später mit sensitven Daten überschrieben
+    lock(&roundkeys, (2 * ROUNDS + 2) * 2);
+
     const char *restrict inputFile = argv[2];
     const char *restrict outputFile = argc == 4 ? argv[3] : argv[2];
 
@@ -215,6 +227,7 @@ void rc5_cbc_enc(unsigned char *key, size_t keylen, uint32_t *buffer, size_t len
     // allokiere Speicherbereich für L
     size_t l_len = keylen % 2 == 0 ? keylen : keylen + 1;
     void *l = malloc(l_len);
+    lock(l, l_len);
 
     // Keysetup
     rc5_init(key, keylen, l);
@@ -244,6 +257,7 @@ void rc5_cbc_dec(unsigned char *key, size_t keylen, uint32_t *buffer, size_t len
     // allokiere Speicherbereich für L
     size_t l_len = keylen % 2 == 0 ? keylen : keylen + 1;
     void *l = malloc(l_len);
+    lock(l, l_len);
 
     // Keysetup
     rc5_init(key, keylen, l);
@@ -275,6 +289,7 @@ void rc5_ctr(unsigned char *key, size_t keylen, uint32_t *buffer, size_t len) {
     // allokiere Speicherbereich für L
     size_t l_len = keylen % 2 == 0 ? keylen : keylen + 1;
     void *l = malloc(l_len);
+    lock(l, l_len);
 
     // Keysetup
     rc5_init(key, keylen, l);
@@ -311,6 +326,7 @@ void rc5_ecb_enc(unsigned char *key, size_t keylen, uint32_t *buffer, size_t len
     // allokiere Speicherbereich für L
     size_t l_len = keylen % 2 == 0 ? keylen : keylen + 1;
     void *l = malloc(l_len);
+    lock(l, l_len);
 
     // Keysetup
     rc5_init(key, keylen, l);
@@ -341,6 +357,7 @@ void rc5_ecb_dec(unsigned char *key, size_t keylen, uint32_t *buffer, size_t len
     // allokiere Speicherbereich für L
     size_t l_len = keylen % 2 == 0 ? keylen : keylen + 1;
     void *l = malloc(l_len);
+    lock(l, l_len);
 
     // Keysetup
     rc5_init(key, keylen, l);
@@ -358,6 +375,16 @@ void rc5_ecb_dec(unsigned char *key, size_t keylen, uint32_t *buffer, size_t len
     memset(l, 0, l_len);
     memset(key, 0, keylen);
     free(l);
+}
+
+static void lock(const void *addr, size_t len) {
+#include <sys/mman.h>
+    // Funktionen aus diesem Header, können nur in dieser Methode aufgerufen werden
+    // Verhindert Aufruf von mlock ohne entsrpechende Warnung
+
+    if (mlock(addr, len) && verbose) {
+        warn("Could not lock memory. Sensitive data might be exposed on an unencrypted disk.");
+    }
 }
 
 static int print_progress(size_t progress, size_t unit, int last_percentage) {
