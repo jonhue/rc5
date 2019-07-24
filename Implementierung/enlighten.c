@@ -5,6 +5,10 @@
 
 #define BMP_HEADER_LENGTH 54
 
+/**
+ * Ersetzt den Header einer verschlüsselten BMP Datei mit einem unverschlüsselten Header, sodass
+ * das verschlüsselte Bild dargestellt werden kann.
+ */
 int main(int argc, char **argv) {
     if (argc != 3) {
         printf("usage: %s <originalBMP> <encryptedBMP>\n", argv[0]);
