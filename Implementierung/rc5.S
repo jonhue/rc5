@@ -264,6 +264,44 @@ rc5_dec:
     mov dword ptr [rdi], r8d
 ret
 
+# C-Makro statt Unterprogramm um mehrfach verwendeten Code zu extrahieren und überflüssige
+# Stack-Pushes zu vermeiden. Wird von CPP ersetzt.
+#define prol_128 \
+# xmm0: Register, dessen Inhalte nach links rotiert werden \
+# xmm1: Register, das angibt, um wie viel rotiert wird \
+# Lokale Variablen: \
+# xmm6: Temporäres Register \
+# xmm7: Temporäres Register \
+# r10: Zähler \
+# cl: Temporäres Register für das Rotieren \
+# x8d: Temporäres Register für Words aus xmm0 \
+# x9d: Temporäres Register für Words aus xmm1 \
+\
+    # 16-Bit Wörter schrittweise auslesen, rotieren, und in xmm6 schreiben \
+    pxor xmm6, xmm6; \
+    mov r10, 3; \
+.Lprol128loadloop: \
+    movd r8d, xmm0; \
+    pshufd xmm0, xmm0, 0b00111001; \
+    movd r9d, xmm1; \
+    pshufd xmm1, xmm1, 0b00111001; \
+    mov cl, r9b; \
+    rol r8w, cl; \
+    ror r8d, 16; \
+    ror r9d, 16; \
+    mov cl, r9b; \
+    rol r8w, cl; \
+    ror r8d, 16; \
+    movd xmm7, r8d; \
+    paddw xmm6, xmm7; \
+    pshufd xmm6, xmm6, 0b00111001; \
+    dec r10; \
+    cmp r10, 0; \
+    jge .Lprol128loadloop; \
+\
+    # 16-Bit Wörter aus xmm7 in umgekehrter Reihenfolge in xmm0 schreiben \
+    movdqa xmm0, xmm6
+
 rc5_enc_128:
 # rdi: Buffer, der die Startadresse der 8 zu verschlüsselnden Blöcke enthält (je 32 Bit)
 # Lokale Variablen:
@@ -349,7 +387,7 @@ rc5_enc_128:
 
     # Linken Halbblock verschlüsseln
     pxor xmm0, xmm1
-    call prol_128
+    prol_128
     paddw xmm0, xmm2
 
     # Nächsten Rundenschlüssel in die unteren Bits holen
@@ -366,7 +404,7 @@ rc5_enc_128:
     # xmm1 xor xmm0 und xmm1 und xmm0 vertauschen
     pxor xmm0, xmm1
     pxor xmm1, xmm0
-    call prol_128
+    prol_128
     # xmm1 und xmm0 zurücktauschen
     pxor xmm1, xmm0
     pxor xmm0, xmm1
@@ -384,43 +422,6 @@ rc5_enc_128:
     punpckhwd xmm2, xmm1
     movdqa [rdi], xmm0
     movdqa [rdi + 16], xmm2
-ret
-
-prol_128:
-# xmm0: Register, dessen Inhalte nach links rotiert werden
-# xmm1: Register, das angibt, um wie viel rotiert wird
-# Lokale Variablen:
-# xmm6: Temporäres Register
-# xmm7: Temporäres Register
-# r10: Zähler
-# cl: Temporäres Register für das Rotieren
-# x8d: Temporäres Register für Words aus xmm0
-# x9d: Temporäres Register für Words aus xmm1
-
-    # 16-Bit Wörter schrittweise auslesen, rotieren, und in xmm6 schreiben
-    pxor xmm6, xmm6
-    mov r10, 3
-.Lprol128loadloop:
-    movd r8d, xmm0
-    pshufd xmm0, xmm0, 0b00111001
-    movd r9d, xmm1
-    pshufd xmm1, xmm1, 0b00111001
-    mov cl, r9b
-    rol r8w, cl
-    ror r8d, 16
-    ror r9d, 16
-    mov cl, r9b
-    rol r8w, cl
-    ror r8d, 16
-    movd xmm7, r8d
-    paddw xmm6, xmm7
-    pshufd xmm6, xmm6, 0b00111001
-    dec r10
-    cmp r10, 0
-    jge .Lprol128loadloop
-
-    # 16-Bit Wörter aus xmm7 in umgekehrter Reihenfolge in xmm0 schreiben
-    movdqa xmm0, xmm6
 ret
 
 reset_registers:
