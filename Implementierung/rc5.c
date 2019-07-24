@@ -70,6 +70,11 @@ int main(int argc, char **argv) {
     argc -= optind;
     argv += optind;
 
+    if (argc < 1) {
+        // Kein Command
+        usage(program_name);
+    }
+
     if (strcmp(argv[0], "enc") == 0) {
         encrypt = 1;
     } else if (strcmp(argv[0], "dec") == 0) {

@@ -1,4 +1,7 @@
-# Ignoriere die kompilierte Datei
+# Ignoriere die kompilierten Dateien
 rc5
+bufferio.o
+enlighten
+key_expansion
 # Ignoriere den vom Compiler generierten debug folder
 rc5.dSYM/
