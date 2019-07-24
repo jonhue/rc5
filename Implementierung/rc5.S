@@ -18,11 +18,6 @@ roundkeys: .hword \
 
 .text
 
-# Dient zum Testen. Gibt die Adresse der roundkeys zurück, damit diese zwischengespeichert und später wiederhergestellt werden können.
-get_roundkeys_address:
-    lea rax, [rip + roundkeys]
-    ret
-
 rc5_init:
 # rdi: Adresse des Schlüssels *K
 # rsi: Länge des Schlüssels in Byte b
