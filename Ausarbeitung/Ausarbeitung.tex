@@ -410,43 +410,31 @@ Beschreibung.
 
 \subsubsection{Ver- und Entschlüsselung}
 
-Zur Überprüfung der Korrektheit haben wir die Ergebnisse unserer Implementierung mit denen einer Referenzimplementierung verglichen. Die Referenzimplementierung, die wir verwenden, ist in RFC2040 der IETF enthalten \cite{rfc2040}. Testcases können mit \texttt{./rc5 test [id]} ausgeführt werden. Wird keine ID angegeben, werden alle Testcases ausgeführt. Im folgenden sind die verschiedenen Testcases mit ihrer ID aufgelistet. \bigbreak
+Zur Überprüfung der Korrektheit haben wir die Ergebnisse unserer Implementierung mit denen einer Referenzimplementierung verglichen. Die Referenzimplementierung, die wir verwenden, ist in RFC2040 der IETF enthalten \cite{rfc2040}. Testcases können mit \texttt{./rc5 test [id]} ausgeführt werden. Wird keine ID angegeben, werden alle Testcases ausgeführt. Im folgenden sind die verschiedenen Testcases mit ihrer ID aufgelistet.
 
-\noindent \textbf{Test ``rfc2040''} \bigbreak
+\paragraph{Test ``rfc2040''} Der Ciphertext, den die RFC2040-Implementierung erzeugt, wird mit unserem verglichen. Falls die beiden gleich sind, ist der Test erfolgreich.
 
-Der Ciphertext, den die RFC2040-Implementierung erzeugt, wird mit unserem verglichen. Falls die beiden gleich sind, ist der Test erfolgreich. \bigbreak
-
-\noindent \textbf{Test ``cbc''} \bigbreak
-
-Die ertsen 1.000.000 Fibonacci-Zahlen modulo 256 werden mit unserer Implementierung ver- und wieder entschlüsselt. Falls das Entschlüsselte gleich dem Plaintext ist, ist der Test erfolgreich.
+\paragraph{Test ``cbc''} Die ersten 1.000.000 Fibonacci-Zahlen modulo 256 werden mit unserer Implementierung ver- und wieder entschlüsselt. Falls das Entschlüsselte gleich dem Plaintext ist, ist der Test erfolgreich.
 
 \subsubsection{Randfälle}
 
-Im folgenden sind weitere Randfälle beschrieben, die nicht durch \texttt{./rc5 test [id]} aufgerufen werden können. \bigbreak
+Im folgenden sind weitere Randfälle beschrieben, die nicht durch \texttt{./rc5 test [id]} aufgerufen werden können.
 
-\noindent \textbf{Leerer Schlüssel} \bigbreak
+\paragraph{Leerer Schlüssel} Wird z.B. durch \texttt{./rc5 enc "{}"{} in out} ein leerer Schlüssel übergeben, resultiert dies in einer Warnung und die Verschlüsselung wird abgebrochen.
 
-\noindent Wird z.B. durch \texttt{./rc5 enc ``'' in out} ein leerer Schlüssel übergeben, resultiert dies in einer Warnung und die Verschlüsselung wird abgebrochen.\bigbreak
-
-\noindent \textbf{Leere Datei} \bigbreak
-
-\noindent Wird mit 
+\paragraph{Leere Datei} Wird mit 
 \begin{verbatim}
 $ touch test.txt
 $ ./rc5 enc key test.txt test.enc
-\end{verbatim} eine leere Datei verschlüsselt, so werden nur Padding und Initialisierungsvektor in \texttt{test.enc} eingefügt. Entschlüsselt man \texttt{test.enc} wieder, erhält man eine leere Datei zurück.\bigbreak
+\end{verbatim} eine leere Datei verschlüsselt, so werden nur Padding und Initialisierungsvektor in \texttt{test.enc} eingefügt. Entschlüsselt man \texttt{test.enc} wieder, erhält man eine leere Datei zurück.
 
-\noindent \textbf{Input-Datei existiert nicht} \bigbreak
-
-\noindent Existiert die Input-Datei nicht, wird eine Fehlermeldung ausgegeben:
+\paragraph{Input-Datei existiert nicht} Existiert die Input-Datei nicht, wird eine Fehlermeldung ausgegeben:
 \begin{verbatim}
 $ ./rc5 enc key hello out -m cbc
 rc5: hello: No such file or directory
-\end{verbatim}\bigbreak
+\end{verbatim}
 
-\noindent \textbf{Ungültiger Dateiaufbau bei Entschlüsselung} \bigbreak
-
-\noindent Ist die Dateilänge kein Vielfaches der Blockgröße (32 Bit), ist die Datei zu kurz (mindestens ein vollständiger Block und der Initialisierungsvektor müssen enthalten sein) oder ist das letzte Byte des entschlüsselten Textes größer als 4 (ungültiges Padding), wird folgende Fehlermeldung ausgegeben:
+\paragraph{Ungültiger Dateiaufbau bei Entschlüsselung} Ist die Dateilänge kein Vielfaches der Blockgröße (32 Bit), ist die Datei zu kurz (mindestens ein vollständiger Block und der Initialisierungsvektor müssen enthalten sein) oder ist das letzte Byte des entschlüsselten Textes größer als 4 (ungültiges Padding), wird folgende Fehlermeldung ausgegeben:
 \begin{verbatim}
 rc5: test.dec: Could not decrypt. File is malformed.
 \end{verbatim}
