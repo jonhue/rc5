@@ -13,6 +13,7 @@
 \usepackage{hyperref}
 \usepackage{tabularx}
 \usepackage[block=ragged]{biblatex}
+\usepackage{multicol}
 \addbibresource{bib/Literatur.bib}
 
 % Diese Zeile bitte -nicht- aendern.
@@ -453,6 +454,52 @@ rc5: test.dec: Could not decrypt. File is malformed.
 Es kann jedoch vorkommen, dass eine Datei nicht mit unserer Implementierung verschlüsselt wurde und trotzdem alle Kriterien erfüllt. In diesem Fall wird die Datei dennoch ``entschlüsselt'', es wird keine Fehlermeldung ausgegeben.
 
 \subsection{Performance}
+
+\subsubsection{Vergleich des Assembler-Codes}
+
+Für die Performance ist entscheidend, wie ein einzelner Block verschlüsselt wird. Im Folgenden ist der Code für eine Runde der RC5-Chiffre von unserer und der RFC2040-Implementierung zu sehen:
+
+\begin{multicols}{2}
+
+\noindent \textbf{Unsere Implementierung}
+
+\begin{verbatim}
+movd r11d, xmm0
+pshufd xmm0, xmm0, 0b00111001
+xor r9w, r10w
+mov cl, r10b
+rol r9w, cl
+add r9w, r11w
+
+shr r11d, 16
+xor r10w, r9w
+mov cl, r9b
+rol r10w, cl
+add r10w, r11w
+add rax, 2
+\end{verbatim}
+
+\noindent \textbf{RFC2040-Implementierung}
+
+\begin{verbatim}
+mov    ecx,eax
+xor    r8d,eax
+add    rdx,0x4
+and    ecx,0xf
+rol    r8w,cl
+add    r8w,WORD PTR [rdx-0x4]
+
+mov    ecx,r8d
+xor    eax,r8d
+and    ecx,0xf
+rol    ax,cl
+add    ax,WORD PTR [rdx-0x2]
+
+\end{verbatim}
+
+\end{multicols}
+
+\noindent Der Code ist in die Verschlüsselung des linken und des rechten Halbblocks aufgeteilt. Es ist deutlich zu erkennen, dass wir während der Verschlüsselung auf ein Laden der Rundenschlüssel verzichten. Stattdessen werden bei Bedarf acht neue Rundenschlüssel in \texttt{xmm0} geladen (hier nicht gezeigt). Bei der RFC2040-Implementierung wird jeder Rundenschlüssel einzeln aus dem Speicher geladen, was die Performance gegenüber unserer Implementierung verschlechtert.
 
 \section{Zusammenfassung}
 
