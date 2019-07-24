@@ -23,8 +23,13 @@
 
 \section{Einleitung}
 
+Im Folgenden wird die symmetrische Blockchiffre RC5 sowie die Implementierung dieser beschrieben. Zunächst wird der Algorithmus näher spezifiziert und auf dessen Sicherheit eingegangen. Daraufhin werden Aspekte der Lösungsfindung besprochen und der Implementierung dokumentiert. Abschließend wird die Implementierung gegen eine Referenzimplementierung getestet und die Performanz analysiert.
 
 \section{Problemstellung und Spezifikation}
+
+RC5 ist eine symmetrische Blockchiffre, es wird also derselbe Schlüssel zum Ver- und Entschlüsseln verwendet. Als Blockchiffre kann RC5 nur Plaintexte einer vorgegebenen Länge verschlüsseln. Um Plaintexte beliebiger Länge zu verschlüsseln, müssen die Ciphertextblöcke mithilfe eines Betriebsmodus kombiniert werden.
+RC5 ist außerdem rundenbasiert, weshalb zunächst in aus dem eingegebenen Schlüssel mehrere Rundenschlüssel erzeugt werden. Für unsere Implementierung ist die Konfiguration RC5-16/16/b vorgegeben, es werden also auf jeweils zwei 16-Bit-Halbblöcken 16 Ver- bzw. Entschlüsselungsrunden durchgeführt. Die Schlüssellänge bleibt variabel.
+
 \subsection{RC5-16/16/b}
 
 \subsubsection{Schlüsselerweiterung mit P und Q}
@@ -40,7 +45,7 @@ Für den Schritt der Schlüsselexpansion von RC5 werden die beiden ungeraden Gan
 
 mit $w$ als der Größe eines Halbblocks in Bits, $e$ als der Eulerschen Zahl und $\phi$ als dem Goldenen Schnitt wobei $Odd(x)$ die jeweils näheste ungerade Zahl bezeichnet.\bigbreak
 
-Für RC5-16/16/b --- RC5 mit der Wortgröße $16$, der Rundenanzahl $16$ und der Schlüsselgröße $b$ --- gilt damit:
+Für RC5-16/16/b gilt damit:
 
 \begin{align*}
     P &= Odd((2,71828 - 2) \cdot 2^{16}) \\
@@ -71,7 +76,7 @@ Damit sind zur Beurteilung der Sicherheit von RC5 im Allgemeinen insbesondere di
 
 Das Bundesamt für Sicherheit in der Informationstechnik (BSI) schlägt für Blockchiffren wie RC5 eine minimale Schlüssellänge von $128$ Bits vor.\cite[p.21]{bsi}
 
-\paragraph{Betriebsmodus} In der Praxis werden Blockchiffren in der Regel mit einem Betriebsmodus umgesetzt, mithilfe dessen auch Nachrichten variabler Länge verschlüsselt werden können. Entscheidend ist für deren Sicherheit, dass der entstehende Ciphertext pseudorandom ist.\bigbreak
+\paragraph{Mode of Operation} Die Wahl des Betriebsmodus ist ebenfalls für die Sicherheit relevant. Entscheidend ist dafür, dass der entstehende Ciphertext pseudorandom ist.\bigbreak
 
 Ist dies nicht der Fall --- resultieren äquivalente Plaintext-Blöcke beispielsweise in äquivalenten Ciphertext-Blöcken ---, dann enthält der Ciphertext Informationen zur Struktur des Plaintextes\cite[p.22]{bsi}. In diesem Fall können Teile des Plaintextes durch \textit{Häufigkeitsanalyse} rekonstruiert werden\cite[p.22]{bsi}, oder sogar der verwendete Schlüssel durch einen \textit{Codebook Attack} gewonnen werden\cite[p.2]{elbaz}.\bigbreak
 
@@ -157,7 +162,7 @@ Dann ist eine Feistelchiffre das Feistelnetzwerk $\Psi^r(f_{k_1},...,f_{k_r})$. 
 
 \subsubsection{RC5 als Feistelchiffre}
 
-RC5 ist eine symmetrische Blockchiffre, deren Aufbau dem einer Feistelchiffre gleicht. RC5 hat die Parameter:\cite[p.2f]{rc5rev}
+Der Aufbau von RC5 gleicht dem einer Feistelchiffre. RC5 hat die Parameter:\cite[p.2f]{rc5rev}
 
 \begin{itemize}
     \item $w$ ist die Wortgröße in Bits. Ein durch RC5 verschlüsselbarer Block besteht aus zwei Wörtern.
@@ -247,15 +252,15 @@ Aufgrund der Blocklänge bietet sich nur ein 32-Bit-Initialisierungsvektor an, d
 Eine Geheimhaltung des Initialisierungsvektors ist nicht erforderlich \cite[p.194]{appcrypt}, weshalb der Vektor am Ende der verschlüsselten Datei gespeichert und dort bei der Entschlüsselung wieder ausgelesen wird.
 
 \subsection{Einmaliges Ausführen der Schlüsselexpansion}
-Ein bei gleicher Rundenanzahl und Blockgröße stets gleich bleibender Schritt bei der Ver- und Entschlüsselung ist die Schlüsselexpansion. Diese hängt nur von den Nothing-Up-My-Sleeve-Zahlen $P$ und $Q$ ab und muss daher im Voraus nur einmal berechnet werden. Die resultierenden Rundenschlüssel werden in der data-Section unseres Assemblyprogramms gespeichert, um sie beim Key-Mixing weiterzuverwenden. Der Code zur Schlüsselexpansion ist seperat in der Datei key\_expansion.S zu finden.
+Ein bei gleicher Rundenanzahl und Blockgröße stets gleich bleibender Schritt bei der Ver- und Entschlüsselung ist die Schlüsselexpansion. Diese hängt nur von den Nothing-Up-My-Sleeve-Zahlen $P$ und $Q$ ab und muss daher im Voraus nur einmal berechnet werden. Die resultierenden Rundenschlüssel werden in der data-Section unseres Assemblerprogramms gespeichert, um sie beim Key-Mixing weiterzuverwenden. Der Code zur Schlüsselexpansion ist seperat in den Dateien \texttt{key\_expansion.c} und \texttt{key\_expansion.S} zu finden.
 
 \subsection{Optimierung durch SIMD}
 Eine Optimierung durch SIMD ist möglich und sinnvoll, wenn ein Algorithmus auf mehreren Datenblöcken die selbe Operation ohne Abhängigkeiten zwischen Blöcken ausführt. Bei RC5 und dem CBC-Mode werden jedoch häufig Abhängigkeiten verwendet, um statistischen Analysen, wie sie zum Beispiel beim ECB-Mode möglich sind, vorzubeugen.\bigbreak
 
 Beim Key-Mixing hängt der nächste Rundenschlüssel beispielsweise direkt vom vorherigen ab, wodurch eine Parallelisierung unmöglich wird.
-Ähnliches gilt für die Ver- und Entschlüsselung, da dort zur Erzeugung des nächsten Ciphertextblocks der vorherige benötigt wird.\bigbreak
+Ähnliches gilt für die Ver- und Entschlüsselung, da dort zur Erzeugung des nächsten Ciphertextblocks der vorherige benötigt wird. Die einzige mögliche Optimierung ist das gleichzeitige Laden mehrerer Rundenschlüssel oder Blöcke aus dem Speicher, um die Anzahl der Zugriffe zu minimieren. Beim CBC-Betriebsmodus ist nur ein Laden mehrerer Rundenschlüssel möglich. Wir verwenden ein XMM-Register, um 8 16-Bit-Rundenschlüssel gleichzeitig zu laden. Für die tatsächliche Verwendung müssen diese jedoch aus dem XMM-Register entnommen werden, da nur eine Runde gleichzeitig berechnet werden kann.\bigbreak
 
-Die einzig mögliche Optimierung ist das gleichzeitige Laden mehrerer Rundenschlüssel oder Blöcke aus dem Speicher, um die Anzahl der Zugriffe zu minimieren. Zunächst war unser Ziel, mit SSE-, AVX- oder AVX-512-Registern möglichst viele Schlüssel gleichzeitig zu laden. Für die Benutzung bei der Ver-/Entschlüsselung werden jedoch einzelne Schlüssel benötigt. Da die x86-64-Instruktion PEXTRW, die das Extrahieren einer einzelnen Lane erlaubt, als Laneindex nur einen Immediate akzeptiert, entschieden wir uns, 4 Schlüssel gleichzeitig in ein 64-Bit-Register zu laden und durch Shift-Operation den passenden Schlüssel in die niedrigen 16 Bit zu bewegen.
+Beim Counter-Betriebsmodus ist eine Optimierung durch SIMD möglich. Da der Counter leicht für mehrere Blöcke berechnet werden kann und die Verschlüsselung der Blöcke nicht voneinander abhängt, kann diese auf 8 Blöcken parallel erfolgen, indem die linken und rechten Halbblöcke jeweils in ein XMM-Register geladen werden.
 
 \section{Dokumentation der Implementierung}
 Die hier bereitgestellte RC5-Implementierung kann zur sicheren Ver- und Entschlüsselung von Daten
@@ -394,7 +399,52 @@ Beschreibung.
 
 \section{Ergebnisse}
 
+\subsection{Korrektheit}
 
+\subsubsection{Ver- und Entschlüsselung}
+
+Zur Überprüfung der Korrektheit haben wir die Ergebnisse unserer Implementierung mit denen einer Referenzimplementierung verglichen. Die Referenzimplementierung, die wir verwenden, ist in RFC2040 der IETF enthalten \cite{rfc2040}. Testcases können mit \texttt{./rc5 test [id]} ausgeführt werden. Wird keine ID angegeben, werden alle Testcases ausgeführt. Im folgenden sind die verschiedenen Testcases mit ihrer ID aufgelistet. \bigbreak
+
+\noindent \textbf{Test ``rfc2040''} \bigbreak
+
+Der Ciphertext, den die RFC2040-Implementierung erzeugt, wird mit unserem verglichen. Falls die beiden gleich sind, ist der Test erfolgreich. \bigbreak
+
+\noindent \textbf{Test ``cbc''} \bigbreak
+
+Die ertsen 1.000.000 Fibonacci-Zahlen modulo 256 werden mit unserer Implementierung ver- und wieder entschlüsselt. Falls das Entschlüsselte gleich dem Plaintext ist, ist der Test erfolgreich.
+
+\subsubsection{Randfälle}
+
+Im folgenden sind weitere Randfälle beschrieben, die nicht durch \texttt{./rc5 test [id]} aufgerufen werden können. \bigbreak
+
+\noindent \textbf{Leerer Schlüssel} \bigbreak
+
+\noindent Wird z.B. durch \texttt{./rc5 enc ``'' in out} ein leerer Schlüssel übergeben, resultiert dies in einer Warnung und die Verschlüsselung wird abgebrochen.\bigbreak
+
+\noindent \textbf{Leere Datei} \bigbreak
+
+\noindent Wird mit 
+\begin{verbatim}
+$ touch test.txt
+$ ./rc5 enc key test.txt test.enc
+\end{verbatim} eine leere Datei verschlüsselt, so werden nur Padding und Initialisierungsvektor in \texttt{test.enc} eingefügt. Entschlüsselt man \texttt{test.enc} wieder, erhält man eine leere Datei zurück.\bigbreak
+
+\noindent \textbf{Input-Datei existiert nicht} \bigbreak
+
+\noindent Existiert die Input-Datei nicht, wird eine Fehlermeldung ausgegeben:
+\begin{verbatim}
+$ ./rc5 enc key hello out -m cbc
+rc5: hello: No such file or directory
+\end{verbatim}\bigbreak
+
+\noindent \textbf{Ungültiger Dateiaufbau bei Entschlüsselung} \bigbreak
+
+\noindent Ist die Dateilänge kein Vielfaches der Blockgröße (32 Bit), ist die Datei zu kurz (mindestens ein vollständiger Block und der Initialisierungsvektor müssen enthalten sein) oder ist das letzte Byte des entschlüsselten Textes größer als 4 (ungültiges Padding), wird folgende Fehlermeldung ausgegeben:
+\begin{verbatim}
+rc5: test.dec: Could not decrypt. File is malformed.
+\end{verbatim}
+
+Es kann jedoch vorkommen, dass eine Datei nicht mit unserer Implementierung verschlüsselt wurde und trotzdem alle Kriterien erfüllt. In diesem Fall wird die Datei dennoch ``entschlüsselt'', es wird keine Fehlermeldung ausgegeben.
 
 \subsection{Performance}
 
