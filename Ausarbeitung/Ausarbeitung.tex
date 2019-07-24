@@ -86,17 +86,23 @@ Sichere Operationsmodi sind beispielsweise \textit{Counter Block Chaining (CBC)}
 
 Knudsen und Meier zeigen zwar, dass die Komplexität des von Kaliski und Yin vorgeschlagenen differenziellen Angriffs um einen Faktor von bis zu $512$ reduziert werden kann.\cite[p.2]{knudsen+meier} Allerdings bleibt ein solcher Angriff damit weiterhin sehr unwahrscheinlich. Zudem wurde gezeigt, dass für bestimmte Teile des Schlüsselraums die differentiellen Kryptoanalysen weiter verbessert werden können.\cite[p.13]{knudsen+meier} Allerdings sind für einen effektiven Angriff entweder zu wenige Schlüssel betroffen oder die Anzahl der benötigten Plaintexte weiterhin zu hoch. Heys konnte Ähnliches für lineare Kryptoanalyse zeigen.\cite[p.5]{heys}\bigbreak
 
-\paragraph{Blockgröße} Durch die $32$ Bit Blockgröße von RC5-16/16/b ist die Komplexität eines \textit{generischen Angriffs} durch $2^{32}$ nach oben beschränkt. Damit kann eine untere Schranke $\epsilon$ für die Wahrscheinlichkeit eines Angriffs abgeschätzt werden durch
+\paragraph{Blockgröße} Durch die $32$ Bit Blockgröße von RC5-16/16/b ist die Komplexität eines \textit{generischen Angriffs} durch $2^{32}$ nach oben beschränkt. Bellare et al. zeigen für CBC, dass die Unsicherheit eines generischen Angriffs durch
 
 \[
-    \epsilon \geq \frac{\sigma^2}{2^n}
+    \epsilon \geq \left(\frac{\mu^2}{l^2} - \frac{\mu}{l}\right) \cdot \frac{1}{2^l}
 \]
 
-wobei $\sigma$ der Anahl der verarbeiteten Blöcke und $n = 2w$ der Blockgröße entspricht.\cite[p.24]{bellare}\bigbreak
+gegeben ist, wobei $l = 2w$ der Blockgröße, $\mu = q \cdot l$ der Länge der verarbeiteten Plaintexte und $q$ der Anzahl der verarbeiteten Blöcke entspricht.\cite[p.5; p.24]{bellare} Damit kann eine untere Schranke $\epsilon$ für die Erfolgswahrscheinlichkeit eines solchen Angriffs durch
 
-Die minimale Wahrscheinlichkeit eines generischen Angriffs auf eine 32-Bit Blockchiffre ist somit $2^{-32}$. Aus diesem Grund eignen sich $32$-Bit Blockchiffren im Allgemeinen und RC5-16/16/b im Speziellen nicht für die Verschlüsselung von großen Datenmengen.\bigbreak
+\[
+    \epsilon \geq \frac{q^2}{2^l}
+\]
 
-Die RC5 Chiffre kann damit bei für die Anwendung ausreichend großer Blockgröße und Rundenanzahl, $b >= 16$ und Nutzung eines geeigneten Betriebsmodus als sicher gelten. RC5-16/16/b eignet sich in der Regel lediglich zur Verschlüsselung von kleinen Datenmengen für die $\sigma \ll 2^{16} = 2^{n/2}$ gilt.
+abgeschätzt werden.\bigbreak
+
+Die minimale Erfolgswahrscheinlichkeit eines generischen Angriffs auf eine 32-Bit Blockchiffre ist somit $2^{-32}$. Aus diesem Grund eignen sich $32$-Bit Blockchiffren im Allgemeinen und RC5-16/16/b im Speziellen nicht für die Verschlüsselung von großen Datenmengen.\bigbreak
+
+Die RC5-Chiffre kann damit bei für die Anwendung ausreichend großer Blockgröße und Rundenanzahl, $b >= 16$ und Nutzung eines geeigneten Betriebsmodus als sicher gelten. RC5-16/16/b eignet sich in der Regel lediglich zur Verschlüsselung von kleinen Datenmengen für die $q \ll 2^{16} = 2^{l/2}$ gilt.
 
 \subsection{Feistelchiffren}
 
