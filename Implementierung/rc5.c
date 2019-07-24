@@ -30,9 +30,9 @@ static void cleanup(void) {
 static void usage(const char *restrict program_name) {
     errx(EX_USAGE,
          "Usage: %s <command>\n\n"
-         "    enc [-m <mode>] [-v] <key> <inputFile> [<outputFile>]\n"
-         "    dec [-m <mode>] [-v] <key> <inputFile> [<outputFile>]\n"
-         "    test [<testId>]\n"
+         "    enc [-m <mode>] [-v] <key> <input_file> [<output_file>]\n"
+         "    dec [-m <mode>] [-v] <key> <input_file> [<output_file>]\n"
+         "    test [<test_id>]\n"
          "    perf\n\n"
          "where <mode> is one of:\n"
          "    cbc, ctr, ecb",
@@ -129,7 +129,7 @@ int main(int argc, char **argv) {
         }
     }
     data = malloc(size);
-    if (!data) {
+    if (data == NULL) {
         err(EX_OSERR, NULL);
     }
 
@@ -238,6 +238,9 @@ void rc5_cbc_enc(unsigned char *key, size_t keylen, uint32_t *buffer, size_t len
     // allokiere Speicherbereich für L
     size_t l_len = keylen % 2 == 0 ? keylen : keylen + 1;
     void *l = malloc(l_len);
+    if (l == NULL) {
+        err(EX_OSERR, NULL);
+    }
     lock(l, l_len);
 
     // Keysetup
@@ -268,6 +271,9 @@ void rc5_cbc_dec(unsigned char *key, size_t keylen, uint32_t *buffer, size_t len
     // allokiere Speicherbereich für L
     size_t l_len = keylen % 2 == 0 ? keylen : keylen + 1;
     void *l = malloc(l_len);
+    if (l == NULL) {
+        err(EX_OSERR, NULL);
+    }
     lock(l, l_len);
 
     // Keysetup
@@ -300,6 +306,9 @@ void rc5_ctr(unsigned char *key, size_t keylen, uint32_t *buffer, size_t len) {
     // allokiere Speicherbereich für L
     size_t l_len = keylen % 2 == 0 ? keylen : keylen + 1;
     void *l = malloc(l_len);
+    if (l == NULL) {
+        err(EX_OSERR, NULL);
+    }
     lock(l, l_len);
 
     // Keysetup
@@ -337,6 +346,9 @@ void rc5_ecb_enc(unsigned char *key, size_t keylen, uint32_t *buffer, size_t len
     // allokiere Speicherbereich für L
     size_t l_len = keylen % 2 == 0 ? keylen : keylen + 1;
     void *l = malloc(l_len);
+    if (l == NULL) {
+        err(EX_OSERR, NULL);
+    }
     lock(l, l_len);
 
     // Keysetup
@@ -369,6 +381,9 @@ void rc5_ecb_dec(unsigned char *key, size_t keylen, uint32_t *buffer, size_t len
     // allokiere Speicherbereich für L
     size_t l_len = keylen % 2 == 0 ? keylen : keylen + 1;
     void *l = malloc(l_len);
+    if (l == NULL) {
+        err(EX_OSERR, NULL);
+    }
     lock(l, l_len);
 
     // Keysetup

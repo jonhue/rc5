@@ -5,7 +5,7 @@ extern void key_expansion(uint16_t *roundkeys);
 int main() {
     int size = 2*ROUNDS + 2;
     uint16_t *roundkeys = malloc(2*size);
-    if (!roundkeys) {
+    if (roundkeys == NULL) {
         return -1;
     }
 

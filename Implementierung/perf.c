@@ -19,8 +19,7 @@ static u_char key[] = "0123456789";
 start = curtime(); \
 function; \
 modes[modeNo].result += curtime() - start; \
-*modes[modeNo].name = #mode_name; \
-break; \
+*modes[modeNo].name = #mode_name;
 
 #define SIZE MAX_CIPHER_LENGTH
 #define ITERATIONS 20
@@ -38,22 +37,26 @@ void run_perf_tests() {
     size_t s_len = (2 * ROUNDS + 2) * 2;
     void *s = malloc(s_len);
     if (s == NULL) {
-        err(EX_IOERR, "Could not allocate memory for testing");
+        err(EX_OSERR, "Could not allocate memory for testing");
     }
     memcpy(s, roundkeys, s_len);
 
     void *buffer = malloc(SIZE);
     if (buffer == NULL) {
-        err(EX_IOERR, "Could not allocate memory for testing");
+        err(EX_OSERR, "Could not allocate memory for testing");
     }
     void *bufferBackup = malloc(SIZE);
     if (bufferBackup == NULL) {
         free(buffer);
-        err(EX_IOERR, "Could not allocate memory for testing");
+        err(EX_OSERR, "Could not allocate memory for testing");
     }
     memcpy(bufferBackup, buffer, SIZE);
 
-    ptv = setup_RFC2040_testvector(0, (char *) key, sizeof(key) - 1, buffer, SIZE, 0x11223344);
+    ptv = malloc(sizeof(test_vector));
+    if (ptv == NULL) {
+        err(EX_OSERR, "Could not allocate memory for testing");
+    }
+    setup_RFC2040_testvector(ptv, 0, (char *) key, sizeof(key) - 1, buffer, SIZE, 0x11223344);
 
     printf("Testing with %u bytes and %d iterations\n\n", SIZE, ITERATIONS);
     for (modeNo = 0; modeNo < MODE_COUNT; modeNo++) {
@@ -65,21 +68,29 @@ void run_perf_tests() {
         }
         modes[modeNo].result /= ITERATIONS;
     }
+    free(ptv);
     free(buffer);
     free(bufferBackup);
     free(s);
     print_results();
 }
 
+static void test_ref() {
+    test_func(cbc_enc_ref, run_rfc2040_test(ptv, 0))
+    // Führe cleanup dannach aus um Tests nicht zu verfälschen
+    RC5_Key_Destroy(ptv->pKey);
+    RC5_Key_Destroy(ptv->pAlg);
+}
+
 static void test(void *buffer) {
     size_t keylen = sizeof(key);
     switch (modeNo) {
-        case 0: test_func(cbc_enc, rc5_cbc_enc(key, keylen, buffer, SIZE, 1234))
-        case 1: test_func(cbc_enc_ref, run_rfc2040_test(ptv, 0))
-        case 2: test_func(cbc_dec, rc5_cbc_dec(key, keylen, buffer, SIZE, 1234))
-        case 3: test_func(ecb_enc, rc5_ecb_enc(key, keylen, buffer, SIZE))
-        case 4: test_func(ecb_dec, rc5_ecb_dec(key, keylen, buffer, SIZE))
-        case 5: test_func(ctr, rc5_ctr(key, keylen, buffer, SIZE))
+        case 0: test_func(cbc_enc, rc5_cbc_enc(key, keylen, buffer, SIZE, 1234)) break;
+        case 1: test_ref(); break;
+        case 2: test_func(cbc_dec, rc5_cbc_dec(key, keylen, buffer, SIZE, 1234)) break;
+        case 3: test_func(ecb_enc, rc5_ecb_enc(key, keylen, buffer, SIZE)) break;
+        case 4: test_func(ecb_dec, rc5_ecb_dec(key, keylen, buffer, SIZE)) break;
+        case 5: test_func(ctr, rc5_ctr(key, keylen, buffer, SIZE)) break;
         default: printf("Function number %u not found\n", modeNo); break;
     }
 }
