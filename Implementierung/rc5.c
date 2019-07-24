@@ -81,7 +81,7 @@ int main(int argc, char **argv) {
     } else if (strcmp(argv[0], "dec") == 0) {
         decrypt = 1;
     } else if (strcmp(argv[0], "test") == 0) {
-        if (argc == 2) {
+        if (argc == 0) {
             run_test(NULL);
         } else {
             run_test(argv[1]);
