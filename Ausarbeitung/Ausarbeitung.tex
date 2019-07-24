@@ -491,6 +491,10 @@ add    ax,WORD PTR [rdx-0x2]
 
 \section{Zusammenfassung}
 
+Die RC5-Chiffre wurde mit unterschiedlichen Betriebsmodi erfolgreich implementiert und mit einer Referenzimplementierung verglichen. Es konnte gezeigt werden, dass der Einsatz von SSE-Registern zum Laden der Rundenschlüssel für eine deutliche Performance-Steigerung sorgt.\bigbreak
+
+Aufgrund der Konstruktion der RC5-Chiffre eignet sich hingegen der Einsatz von SSE-Instruktionen für das paralelle Verschlüsseln mehrerer Blöcke in SSE-Registern nicht. Die Implementierung der Modi CTR und ECB könnte durch das parallele Verschlüsseln der Blöcke auf mehereren Hardware-Threads weiter beschleunigt werden. Weiterhin könnte das Anwendungsspektrum der Implementierung durch eine variable Wahl der Blockgröße und Rundenanzahl erweitert werden.
+
 \printbibliography
 
 \end{document}
