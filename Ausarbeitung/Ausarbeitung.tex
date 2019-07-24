@@ -13,10 +13,12 @@
 \usepackage{hyperref}
 \usepackage{tabularx}
 \usepackage{pgfplots}
+\usepackage{varwidth}
 \usepackage[block=ragged]{biblatex}
 \usepackage{multicol}
-\pgfplotsset{width=\textwidth,compat=1.9}
+\pgfplotsset{width=12cm,compat=1.9}
 \addbibresource{bib/Literatur.bib}
+\renewcommand*{\bibfont}{\small}
 
 % Diese Zeile bitte -nicht- aendern.
 \title{Gruppe \theGroup{} -- Abgabe zu Aufgabe \theNumber}
@@ -30,82 +32,54 @@ Im Folgenden wird die symmetrische Blockchiffre RC5 sowie die Implementierung di
 
 \section{Problemstellung und Spezifikation}
 
-RC5 ist eine symmetrische Blockchiffre, es wird also derselbe Schlüssel zum Ver- und Entschlüsseln verwendet. Als Blockchiffre kann RC5 nur Plaintexte einer vorgegebenen Länge verschlüsseln. Um Plaintexte beliebiger Länge zu verschlüsseln, müssen die Ciphertextblöcke mithilfe eines Betriebsmodus kombiniert werden.
-RC5 ist außerdem rundenbasiert, weshalb zunächst in aus dem eingegebenen Schlüssel mehrere Rundenschlüssel erzeugt werden. Für unsere Implementierung ist die Konfiguration RC5-16/16/b vorgegeben, es werden also auf jeweils zwei 16-Bit-Halbblöcken 16 Ver- bzw. Entschlüsselungsrunden durchgeführt. Die Schlüssellänge bleibt variabel.
-
 \subsection{RC5-16/16/b}
 
 \subsubsection{Schlüsselerweiterung mit P und Q}
 
-Für den Schritt der Schlüsselexpansion von RC5 werden die beiden ungeraden Ganzzahlen $P$ und $Q$ benötigt. Diese sind jeweils für eine gegebene Blockgröße von RC5 konstant. Im Allgemeinen gilt
+RC5 ist rundenbasiert, weshalb zunächst aus dem gegebenen Schlüssel mehrere Rundenschlüssel erzeugt werden. Für den Schritt der Schlüsselexpansion von RC5 werden die beiden ungeraden Ganzzahlen $P$ und $Q$ benötigt. Diese sind jeweils für eine gegebene Blockgröße von RC5 konstant. Für das von uns implementierte RC5-16/16/b gilt:
 
-\begin{equation}
-    P = Odd((e - 2) \cdot 2^w)
-\end{equation}
-\begin{equation}
-    Q = Odd((\phi - 1) \cdot 2^w)
-\end{equation}
-
-mit $w$ als der Größe eines Halbblocks in Bits, $e$ als der Eulerschen Zahl und $\phi$ als dem Goldenen Schnitt wobei $Odd(x)$ die jeweils näheste ungerade Zahl bezeichnet.\bigbreak
-
-Für RC5-16/16/b gilt damit:
-
+\begin{multicols}{2}
+\noindent
 \begin{align*}
-    P &= Odd((2,71828 - 2) \cdot 2^{16}) \\
-      &= Odd(0,71828 \cdot 65.536) \\
-      &= Odd(47.073,19808) \\
-      &= 47.073 \\
-      &= 0xb7e1 \\
-    Q &= Odd((1,61803 - 1) \cdot 2^{16}) \\
-      &= Odd(0,61803 \cdot 65.536) \\
-      &= Odd(40.503,21408) \\
-      &= 40.503 \\
-      &= 0x9e37
+P &= Odd((e - 2) \cdot 2^{16}) \\
+  &= Odd(0,71828 \cdot 65.536) \\
+  &= Odd(47.073,19808) \\
+  &= 47.073 = 0xb7e1
 \end{align*}
+\begin{align*}
+Q &= Odd((\phi - 1) \cdot 2^{16}) \\
+  &= Odd(0,61803 \cdot 65.536) \\
+  &= Odd(40.503,21408) \\
+  &= 40.503 = 0x9e37
+\end{align*}
+\end{multicols}
 
 \subsubsection{Sicherheit}
 \label{sec:Sicherheit}
 
-Durch die Parametrisierung von RC5\cite[p.2]{rc5rev} unterstützt die Chiffre sowohl unterschiedliche Blockgrößen, unterschiedliche Schlüssellängen als auch eine variable Anzahl von Runden. Hinter dieser Parametrisierung stehen zwei Intentionen:
+Durch die Parametrisierung von RC5-$w$/$r$/$b$ hat die Chiffre eine variable Halbblockgröße $w$, Rundenanzahl $r$ und Schlüssellänge $b$ \cite[p.2]{rc5rev}. Zusammen mit dem Betriebsmodus bestimmen diese Parameter die Sicherheit von RC5.
 
-\begin{enumerate}
-    \item Durch die variable Blockgröße soll die Performance von RC5 von neueren 64-Bit Architekturen profitieren --- allerdings nicht auf diese beschränkt sein.\cite[p.1]{rc5rev}
-    \item Andererseits sollen die frei wählbaren Parameter $r$ und $b$ dem Nutzer der Chiffre die Entscheidung überlassen, wie viel Sicherheit und welche Performance seine Applikation benötigt.\cite[p.1]{rc5rev}
-\end{enumerate}
+\paragraph{Schlüssellänge} So wie im Allgemeinen bei Blockchiffren ist auch bei RC5 die Sicherheit der Chiffre stark von der gewählten Schlüssellänge abhängig. Der Parameter $b \in \{k \in \mathbb{N}_0 \colon k \leq 255\}$ gibt die Länge des Schlüssels in Bytes an \cite[p.3]{rc5rev}. Die Länge der erweiterten Schlüsseltabelle in Bits ergibt sich durch $2^{(2r + 2)w}$ \cite[p.2]{rc5rev}. Der Aufwand für eine \textit{erschöpfende Suche} ist damit $min\{2^{8b}, 2^{(2r + 2)w}\}$ \cite[p.29]{kaliski+yin}. Für RC5-16/16/b ist damit der Aufwand einer erschöpfenden Suche allein von $b$ abhängig, solange $b < 68$ gilt.\bigbreak
 
-Damit sind zur Beurteilung der Sicherheit von RC5 im Allgemeinen insbesondere die Rundenanzahl und die Schlüssellänge zu betrachten. Die Sicherheit von RC5-16/16/b ist auch von der Blockgröße abhängig.
+Das Bundesamt für Sicherheit in der Informationstechnik (BSI) schlägt für Blockchiffren wie RC5 eine minimale Schlüssellänge von $128$ Bits vor \cite[p.21]{bsi}.
 
-\paragraph{Schlüssellänge} So wie im Allgemeinen bei Blockchiffren ist auch bei RC5 die Sicherheit der Chiffre stark von der gewählten Schlüssellänge abhängig. RC5 hat den Parameter $b$ mit $b \in \{k \in \mathbb{N}_0 \colon k \leq 255\}$, der die Länge des Schlüssels in Bytes angibt.\cite[p.3]{rc5rev} Die Länge der erweiterten Schlüsseltabelle in Bits ergibt sich durch $2^{(2r + 2)w}$.\cite[p.2]{rc5rev} Der Aufwand für eine \textit{erschöpfende Suche} ist damit $min\{2^{8b}, 2^{(2r + 2)w}\}$.\cite[p.29]{kaliski+yin} Für RC5-16/16/b ist damit der Aufwand einer erschöpfenden Suche allein von $b$ abhängig, solange $b < 68$ gilt.\bigbreak
+\paragraph{Betriebsmodus} Ist der durch den Betriebsmodus generierte Ciphertext nicht pseudorandom --- resultieren äquivalente Plaintext-Blöcke beispielsweise in äquivalenten Ciphertext-Blöcken ---, dann enthält der Ciphertext Informationen zur Struktur des Plaintextes \cite[p.22]{bsi}. In diesem Fall können Teile des Plaintextes durch \textit{Häufigkeitsanalyse} rekonstruiert \cite[p.22]{bsi}, oder sogar der verwendete Schlüssel durch einen \textit{Codebook Attack} gewonnen werden \cite[p.2]{elbaz}.\bigbreak
 
-Das Bundesamt für Sicherheit in der Informationstechnik (BSI) schlägt für Blockchiffren wie RC5 eine minimale Schlüssellänge von $128$ Bits vor.\cite[p.21]{bsi}
+Sichere Modi sind beispielsweise \textit{Cipher Block Chaining (CBC)} und der \textit{Counter Mode (CTR)}, da dort der $n$-te Chiphertext-Block nicht nur von dem $n$-ten Plaintext-Block und dem genutzten Schlüssel abhängt, sondern zudem noch von einem weiteren Wert, wie dem $(n-1)$-ten Ciphertext-Block oder einem Zähler \cite[p.22]{bsi}.
 
-\paragraph{Mode of Operation} Die Wahl des Betriebsmodus ist ebenfalls für die Sicherheit relevant. Entscheidend ist dafür, dass der entstehende Ciphertext pseudorandom ist.\bigbreak
+\paragraph{Rundenanzahl} Nach Kaliski und Yin werden für eine \textit{differenzielle Kryptoanalyse} von RC5-32/16/b entweder $2^{61}$ selbst gewählte Plaintexte oder $2^{63}$ bekannte Plaintexte benötigt. Ein solcher Angriff auf ein $16$-rundiges RC5 ist damit überaus unwahrscheinlich. Da die Anzahl der möglichen Plaintexte bei dieser Konfiguration von RC5 jedoch bei $2^{64}$ liegt, kann ein solcher Angriff nicht theoretisch ausgeschlossen werden \cite[p.6]{kaliski+yin}. Weiterhin sei eine \textit{lineare Kryptoanalyse von RC5} nur bei einer sehr geringen Rundenzahl von RC5 effektiv \cite[p.28]{kaliski+yin}.\bigbreak
 
-Ist dies nicht der Fall --- resultieren äquivalente Plaintext-Blöcke beispielsweise in äquivalenten Ciphertext-Blöcken ---, dann enthält der Ciphertext Informationen zur Struktur des Plaintextes\cite[p.22]{bsi}. In diesem Fall können Teile des Plaintextes durch \textit{Häufigkeitsanalyse} rekonstruiert werden\cite[p.22]{bsi}, oder sogar der verwendete Schlüssel durch einen \textit{Codebook Attack} gewonnen werden\cite[p.2]{elbaz}.\bigbreak
-
-Sichere Operationsmodi sind beispielsweise \textit{Counter Block Chaining (CBC)} und der \textit{Counter Mode (CTR)}, da dort der $n$-te Chiphertext-Block nicht nur von dem $n$-ten Plaintext-Block und dem genutzten Schlüssel abhängt, sondern zudem noch von einem weiteren Wert, wie dem $(n-1)$-ten Ciphertext-Block oder einem Zähler.\cite[p.22]{bsi}
-
-\paragraph{Rundenanzahl} Nach Kaliski und Yin werden für eine \textit{differenzielle Kryptoanalyse} von RC5-32/16/b entweder $2^{61}$ selbst gewählte Plaintexte oder $2^{63}$ bekannte Plaintexte benötigt. Ein solcher Angriff auf ein $16$-rundiges RC5 ist damit überaus unwahrscheinlich. Da die Anzahl der möglichen Plaintexte bei dieser Konfiguration von RC5 jedoch bei $2^{64}$ liegt, kann ein solcher Angriff nicht theoretisch ausgeschlossen werden.\cite[p.6]{kaliski+yin} Weiterhin sei eine \textit{lineare Kryptoanalyse von RC5} nur bei einer sehr geringen Rundenzahl von RC5 effektiv.\cite[p.28]{kaliski+yin}\bigbreak
-
-Knudsen und Meier zeigen zwar, dass die Komplexität des von Kaliski und Yin vorgeschlagenen differenziellen Angriffs um einen Faktor von bis zu $512$ reduziert werden kann.\cite[p.2]{knudsen+meier} Allerdings bleibt ein solcher Angriff damit weiterhin sehr unwahrscheinlich. Zudem wurde gezeigt, dass für bestimmte Teile des Schlüsselraums die differentiellen Kryptoanalysen weiter verbessert werden können.\cite[p.13]{knudsen+meier} Allerdings sind für einen effektiven Angriff entweder zu wenige Schlüssel betroffen oder die Anzahl der benötigten Plaintexte weiterhin zu hoch. Heys konnte Ähnliches für lineare Kryptoanalyse zeigen.\cite[p.5]{heys}\bigbreak
+Knudsen und Meier zeigen zwar, dass die Komplexität des von Kaliski und Yin vorgeschlagenen differenziellen Angriffs um einen Faktor von bis zu $512$ reduziert werden kann \cite[p.2]{knudsen+meier}, allerdings bleibt ein solcher Angriff damit weiterhin sehr unwahrscheinlich. Zudem wurde gezeigt, dass für bestimmte Teile des Schlüsselraums die differentiellen Kryptoanalysen weiter verbessert werden können \cite[p.13]{knudsen+meier}. Für einen effektiven Angriff sind dennoch entweder zu wenige Schlüssel betroffen oder die Anzahl der benötigten Plaintexte ist weiterhin zu hoch. Ähnliches konnte Heys für lineare Kryptoanalyse zeigen \cite[p.5]{heys}.
 
 \paragraph{Blockgröße} Durch die $32$ Bit Blockgröße von RC5-16/16/b ist die Komplexität eines \textit{generischen Angriffs} durch $2^{32}$ nach oben beschränkt. Bellare et al. zeigen für CBC, dass die Unsicherheit eines generischen Angriffs durch
-
 \[
     \epsilon \geq \left(\frac{\mu^2}{l^2} - \frac{\mu}{l}\right) \cdot \frac{1}{2^l}
 \]
-
-gegeben ist, wobei $l = 2w$ der Blockgröße, $\mu = q \cdot l$ der Länge der verarbeiteten Plaintexte und $q$ der Anzahl der verarbeiteten Blöcke entspricht.\cite[p.5; p.24]{bellare} Damit kann eine untere Schranke $\epsilon$ für die Erfolgswahrscheinlichkeit eines solchen Angriffs durch
-
+gegeben ist, wobei $l = 2w$ der Blockgröße, $\mu = q \cdot l$ der Länge der verarbeiteten Plaintexte und $q$ der Anzahl der verarbeiteten Blöcke entspricht \cite[p.5;24]{bellare}. Damit kann eine untere Schranke $\epsilon$ für die Erfolgswahrscheinlichkeit eines solchen Angriffs durch
 \[
     \epsilon \geq \frac{q^2}{2^l}
 \]
-
-abgeschätzt werden.\bigbreak
-
-Die minimale Erfolgswahrscheinlichkeit eines generischen Angriffs auf eine 32-Bit Blockchiffre ist somit $2^{-32}$. Aus diesem Grund eignen sich $32$-Bit Blockchiffren im Allgemeinen und RC5-16/16/b im Speziellen nicht für die Verschlüsselung von großen Datenmengen.\bigbreak
-
-Die RC5-Chiffre kann damit bei für die Anwendung ausreichend großer Blockgröße und Rundenanzahl, $b >= 16$ und Nutzung eines geeigneten Betriebsmodus als sicher gelten. RC5-16/16/b eignet sich in der Regel lediglich zur Verschlüsselung von kleinen Datenmengen für die $q \ll 2^{16} = 2^{l/2}$ gilt.
+abgeschätzt werden. Die minimale Erfolgswahrscheinlichkeit eines generischen Angriffs auf eine 32-Bit Blockchiffre ist somit $2^{-32}$. Aus diesem Grund eignen sich $32$-Bit Blockchiffren im Allgemeinen und RC5-16/16/b im Speziellen nicht für die Verschlüsselung von großen Datenmengen. Die RC5-Chiffre kann damit bei für die Anwendung ausreichend großer Blockgröße und Rundenanzahl, $b >= 16$ und Nutzung eines geeigneten Betriebsmodus als sicher gelten. RC5-16/16/b eignet sich in der Regel lediglich zur Verschlüsselung von kleinen Datenmengen für die $q \ll 2^{16} = 2^{l/2}$ gilt.
 
 \subsection{Feistelchiffren}
 
@@ -125,59 +99,49 @@ die Famile der Rundenfunktionen. Zunächst soll ein klassisches einrundiges Feis
             T = L \oplus f(R) \\
         \end{cases}
 \]
-für $\forall(L, R) \in (\{0, 1\}^n)^2$.\cite[p.11]{nachef}
-
-\begin{center}
-    \includegraphics[scale=1]{img/1_round_feistel_cipher_enc.png}\break
-    \cite[Fig. 2.1]{nachef}
-\end{center}
-
-Wichtig für jede Verschlüsselung ist Bijektivität, damit jedem Codewort eine eindeutige Plaintext-Nachricht zugeordnet werden kann. $\Psi(f)$ ist unabhängig von $f \in F_n$ eine Permutation, d.h. $f$ selbst muss nicht bijektiv sein.\cite[p.12]{nachef}\bigbreak
-
-Aus der Definition von $\Psi(f)$ ergibt sich ihr Inverses als
+für $\forall(L, R) \in (\{0, 1\}^n)^2$ \cite[p.11]{nachef} (siehe Abbildung 1). Wichtig für jede Verschlüsselung ist Bijektivität, damit jedem Codewort eine eindeutige Plaintext-Nachricht zugeordnet werden kann. $\Psi(f)$ ist unabhängig von $f \in F_n$ eine Permutation, d.h. $f$ selbst muss nicht bijektiv sein \cite[p.12]{nachef}. Aus der Definition von $\Psi(f)$ ergibt sich ihr Inverses als
 \[
     \Psi(f)^{-1} = \sigma \circ \Psi(f) \circ \sigma
 \]
-mit $\sigma$ definiert als $\sigma([L, R]) = [R, L]$ für $L, R \in \{0, 1\}^n$, der Vertauschung beider Halbblöcke.\cite[p.12]{nachef}
-
-\begin{center}
-    \includegraphics[scale=0.5]{img/1_round_feistel_cipher_dec.png}
-\end{center}
+mit $\sigma$ definiert als $\sigma([L, R]) = [R, L]$ für $L, R \in \{0, 1\}^n$, der Vertauschung beider Halbblöcke \cite[p.12]{nachef} (siehe Abbildung 2).
 
 \subsubsection{r-rundige Feistelnetzwerke}
 
 Üblicherweise werden Feistelnetzwerke in mehreren Runden angewendet. Im Allgemeinen ist ein klassisches Feistelnetzwerk mit $r \geq 1$ Runden und $f_1, f_2, ..., f_r \in F_n$ Rundenfunktionen definiert durch
 \[
     \Psi^r(f_1, ..., f_r) = \Psi(f_r) \circ ... \circ \Psi(f_2) \circ \Psi(f_1).
-\]\cite[p.12]{nachef}
+\]\cite[p.12]{nachef} (siehe Abbildung 3)
 
+\begin{multicols}{2}
+{
+\begin{center}
+    \includegraphics[scale=1]{img/1_round_feistel_cipher_enc.png}\break
+    Abbildung 1: Einrundiges Feistelnetzwerk \cite[Fig. 2.1]{nachef}\\
+    \vspace{5mm}
+    \includegraphics[scale=0.4]{img/1_round_feistel_cipher_dec.png}\break
+    Abbildung 2: Inverses eines einrundigen Feistelnetzwerks\bigbreak
+\end{center}
+}
+{
 \begin{center}
     \includegraphics[scale=1]{img/r_round_feistel_cipher_enc.png}\break
-    \cite[Fig. 2.2]{nachef}
+    Abbildung 3: r-rundiges Feistelnetzwerk \cite[Fig. 2.2]{nachef}
 \end{center}
+}
+\end{multicols}
 
-Da ein einrundiges Feistelnetzwerk eine Permutation über $\{0,1\}^{2n}$ ist, sind auch $r$-rundige Feistelnetzwerke Permutationen. Weiterhin ist das Inverse eines $r$-rundigen Feistelnetzwerks die Komposition der Inversen der einzelnen Runden.
+Da ein einrundiges Feistelnetzwerk eine Permutation über $\{0,1\}^{2n}$ ist, sind auch $r$-rundige Feistelnetzwerke Permutationen. Weiterhin ist das Inverse eines $r$-rundigen Feistelnetzwerks die Komposition der Inversen der einzelnen Runden \cite[p.13]{nachef}.
 \begin{align*}
     (\Psi^r(f_1, ..., f_r))^{-1} &= \sigma \circ \Psi(f_1) \circ \sigma \circ ... \circ \sigma \circ \Psi(f_r) \circ \sigma \\
                                  &= \sigma \circ \Psi^r(f_r, ..., f_1) \circ \sigma
-\end{align*}\cite[p.13]{nachef}\bigbreak
-
-Eine Feistelchiffre ist nun ein spezielles Feistelnetzwerk, dessen Rundenfunktionen von einem Rundenschlüssel aus dem Schlüsselraum $K$ abhängen.
+\end{align*} Eine Feistelchiffre ist nun ein spezielles Feistelnetzwerk, dessen Rundenfunktionen von einem Rundenschlüssel aus dem Schlüsselraum $K$ abhängen.
 Seien die Rundenschlüssel $(k_1, ..., k_r) \in K^r$ und die Familie der Rundenfunktionen
 \[
     F_{n, K} := \{f_k \mid k \in K, f_k \colon \{0, 1\}^n \to \{0, 1\}^n\}.
 \]
-Dann ist eine Feistelchiffre das Feistelnetzwerk $\Psi^r(f_{k_1},...,f_{k_r})$. Also die $r$-rundige Permutation von der Nachricht $\{0, 1\}^{2n}$ in Abhängigkeit vom Schlüssel $(k_1, ..., k_r)$.\cite[p.14]{nachef}
+Dann ist eine Feistelchiffre das Feistelnetzwerk $\Psi^r(f_{k_1},...,f_{k_r})$. Also die $r$-rundige Permutation von der Nachricht $\{0, 1\}^{2n}$ in Abhängigkeit vom Schlüssel $(k_1, ..., k_r)$ \cite[p.14]{nachef}.
 
 \subsubsection{RC5 als Feistelchiffre}
-
-Der Aufbau von RC5 gleicht dem einer Feistelchiffre. RC5 hat die Parameter:\cite[p.2f]{rc5rev}
-
-\begin{itemize}
-    \item $w$ ist die Wortgröße in Bits. Ein durch RC5 verschlüsselbarer Block besteht aus zwei Wörtern.
-    \item $r$ ist die Anzahl der Runden in denen RC5 Operationen auf einem Block ausführt. Jede Runde besteht aus zwei Halbrunden, in denen ein Wort aus dem Block alteriert wird.
-    \item $b$ ist die Anzahl der Bytes in dem privaten Schlüssel $K$.
-\end{itemize}
 
 RC5 baut zu Beginn die erweiterte Schlüsseltabelle $S$ auf, die aus $2r + 2$ Schlüsseln besteht und von $K$ abhängt. Seien $\Sigma := (S_2, S_3, ..., S_{2r+1}) = (\Sigma_0, \Sigma_1, ..., \Sigma_{2r-1})$ mit $|\Sigma| = 2r$ die Schlüssel aus der erweiterten Schlüsseltabelle, die während der Runden von RC5 zum Verschlüsseln benutzt werden --- $S_0$ und $S_1$ werden für das Key-Whitening genutzt. Zudem sei $(g_{\Sigma_0}, g_{\Sigma_1}, ..., g_{\Sigma_{2r-1}})$ definiert durch
 \begin{align*}
@@ -202,7 +166,7 @@ Die Reihenfolge der Anwendung der umkehrbaren Bitoperation ($\oplus$) und der Ru
 \begin{samepage}
 \begin{center}
     \includegraphics[scale=0.5]{img/rc5_feistel_cipher.png}\break
-    \textit{Links eine Runde einer Feistelchiffre, rechts eine Runde (zwei Halbrunden) von RC5.}
+    Abbildung 4: Links eine Runde einer Feistelchiffre, rechts eine Runde (zwei Halbrunden) von RC5
 \end{center}
 \end{samepage}
 
@@ -234,11 +198,13 @@ Das PKCS\#7-Padding ist eine Form der Erweiterung des Plaintextes auf ein Vielfa
 \[
     \Delta = b - (l \bmod b)
 \]
-mit $b$ als der Länge eines Blocks und $l$ als der Länge des Plaintextes in Byte. Vor der Anwendung eines Verschlüsselungsalgorithmus, der als Länge des Inputs ein Vielfaches von $b$ Bytes erwartet, werden $\Delta$ Bytes jeweils mit dem Wert $\Delta$ an den Plaintext angefügt.\cite[p.28]{rfc5652}\bigbreak
+mit $b$ als der Länge eines Blocks und $l$ als der Länge des Plaintextes in Byte. Vor der Anwendung eines Verschlüsselungsalgorithmus, der als Länge des Inputs ein Vielfaches von $b$ Bytes erwartet, werden $\Delta$ Bytes jeweils mit dem Wert $\Delta$ an den Plaintext angefügt \cite[p.28]{rfc5652}.\bigbreak
 
 Das heißt, dass der Input in Abhängigkeit von $b$ und $l$ um eine der folgenden Byte-Sequenzen erweitert wird:
 
 \begin{samepage}
+\begin{center}
+\begin{varwidth}{\linewidth}
 \begin{verbatim}
          01 -- if l mod b = b-1
       02 02 -- if l mod b = b-2
@@ -247,9 +213,11 @@ Das heißt, dass der Input in Abhängigkeit von $b$ und $l$ um eine der folgende
           .
 b b ... b b -- if l mod b = 0
 \end{verbatim}
+\end{varwidth}
+\end{center}
 \end{samepage}
 
-Nach dem Entschlüsseln des Codewortes, kann das Padding auf eindeutige Weise entfernt werden, da jeder Plaintext --- einschließlich jener, deren Länge selbst ein Vielfaches der Blockgröße ist --- vor der Verschlüsselung mit PKCS\#7-Padding erweitert wurde. Die Anzahl der zu entfernenden Bytes wird durch das letzte Byte des letzten Blocks angegeben. PKCS\#7-Padding ist wohldefiniert für $b < 256$.\cite[p.28]{rfc5652}
+Nach dem Entschlüsseln des Codewortes, kann das Padding auf eindeutige Weise entfernt werden, da jeder Plaintext --- einschließlich jener, deren Länge selbst ein Vielfaches der Blockgröße ist --- vor der Verschlüsselung mit PKCS\#7-Padding erweitert wurde. Die Anzahl der zu entfernenden Bytes wird durch das letzte Byte des letzten Blocks angegeben. PKCS\#7-Padding ist wohldefiniert für $b < 256$ \cite[p.28]{rfc5652}.
 
 \section{Lösungsfindung}
 
@@ -299,7 +267,7 @@ Es kann entweder verschlüsselt oder entschlüsselt werden. Sofern keine Ausgabe
 Die Implementierung ist in die folgenden sieben Module gegliedert:
 
 \begin{center}
-\begin{tabular}{ |c|m{10cm}| }
+\begin{tabular}{ |c|m{11.2cm}| }
 \hline
 \texttt{rc5} & Enthält die Implementierung der RC5-Chiffre, sowie der Betriebsmodi CBC, CTR und ECB. \\
 \hline
@@ -339,45 +307,11 @@ Beschreibung.
 
 \subsection{Korrektheit}
 
-\subsubsection{Ver- und Entschlüsselung}
-
-Zur Überprüfung der Korrektheit haben wir die Ergebnisse unserer Implementierung mit denen einer Referenzimplementierung verglichen. Die Referenzimplementierung, die wir verwenden, ist in RFC2040 der IETF enthalten \cite{rfc2040}. Testcases können mit \texttt{./rc5 test [id]} ausgeführt werden. Wird keine ID angegeben, werden alle Testcases ausgeführt. Im folgenden sind die verschiedenen Testcases mit ihrer ID aufgelistet.
-
-\paragraph{Test ``rfc2040''} Der Ciphertext, den die RFC2040-Implementierung erzeugt, wird mit unserem verglichen. Falls die beiden gleich sind, ist der Test erfolgreich.
-
-\paragraph{Test ``cbc''} Die ersten 1.000.000 Fibonacci-Zahlen modulo 256 werden mit unserer Implementierung ver- und wieder entschlüsselt. Falls das Entschlüsselte gleich dem Plaintext ist, ist der Test erfolgreich.
-
-\subsubsection{Randfälle}
-
-Im folgenden sind weitere Randfälle beschrieben, die nicht durch \texttt{./rc5 test [id]} aufgerufen werden können.
-
-\paragraph{Leerer Schlüssel} Wird z.B. durch \texttt{./rc5 enc "{}"{} in out} ein leerer Schlüssel übergeben, resultiert dies in einer Warnung und die Verschlüsselung wird abgebrochen.
-
-\paragraph{Leere Datei} Wird mit 
-\begin{verbatim}
-$ touch test.txt
-$ ./rc5 enc key test.txt test.enc
-\end{verbatim} eine leere Datei verschlüsselt, so werden nur Padding und Initialisierungsvektor in \texttt{test.enc} eingefügt. Entschlüsselt man \texttt{test.enc} wieder, erhält man eine leere Datei zurück.
-
-\paragraph{Input-Datei existiert nicht} Existiert die Input-Datei nicht, wird eine Fehlermeldung ausgegeben:
-\begin{verbatim}
-$ ./rc5 enc key hello out -m cbc
-rc5: hello: No such file or directory
-\end{verbatim}
-
-\paragraph{Ungültiger Dateiaufbau bei Entschlüsselung} Ist die Dateilänge kein Vielfaches der Blockgröße (32 Bit), ist die Datei zu kurz (mindestens ein vollständiger Block und der Initialisierungsvektor müssen enthalten sein) oder ist das letzte Byte des entschlüsselten Textes größer als 4 (ungültiges Padding), wird folgende Fehlermeldung ausgegeben:
-\begin{verbatim}
-rc5: test.dec: Could not decrypt. File is malformed.
-\end{verbatim}
-
-Es kann jedoch vorkommen, dass eine Datei nicht mit unserer Implementierung verschlüsselt wurde und trotzdem alle Kriterien erfüllt. In diesem Fall wird die Datei dennoch ``entschlüsselt'', es wird keine Fehlermeldung ausgegeben.
+Zur Überprüfung der Korrektheit haben wir die Ergebnisse unserer Implementierung mit denen einer Referenzimplementierung verglichen. Die Referenzimplementierung, die wir verwenden, ist in RFC2040 der IETF enthalten \cite{rfc2040}. Testfälle können mit dem \texttt{test}-Command ausgeführt werden.
 
 \subsection{Performance}
 
-Mittels des \texttt{perf}-Commands kann die Performance von verschiedenen Betriebsmodi, inklusive der
-ursprünglichen Referenzimplementierung für die RC5-Verschlüsselung von Rivest, getestet werden.
-Der folgende Graph zeigt die Ergebnisse für verschiedene Dateigrößen.
-
+\begin{center}
 \begin{tikzpicture}
 \begin{axis}[
     title={Vergleich der Betriebsmodi inkl. der Referenzimplementierung},
@@ -444,6 +378,7 @@ Der folgende Graph zeigt die Ergebnisse für verschiedene Dateigrößen.
 
 \end{axis}
 \end{tikzpicture}
+\end{center}
 
 Die Entschlüsselung mit dem CBC/ECB-Modus nutzt jeweils die Assemblerfunktion \texttt{rc5\_dec} und hat daher eine vergleichbare Laufzeit. Die Laufzeit der Verschlüsselung mit CBC ist ähnlich, da hier die zu \texttt{rc5\_dec} vergleichbare Assemblerfunktion \texttt{rc5\_enc} verwendet wird. Im Vergleich zur RFC2040-Implementierung
 ist unsere Assemblerimplementierung um bis zu 26\% schneller.\bigbreak
@@ -494,7 +429,7 @@ add    ax,WORD PTR [rdx-0x2]
 
 \end{multicols}
 
-\noindent Der Code ist in die Verschlüsselung des linken und des rechten Halbblocks aufgeteilt. Es ist deutlich zu erkennen, dass wir während der Verschlüsselung auf ein Laden der Rundenschlüssel verzichten. Stattdessen werden bei Bedarf acht neue Rundenschlüssel in \texttt{xmm0} geladen (hier nicht gezeigt). Bei der RFC2040-Implementierung wird jeder Rundenschlüssel einzeln aus dem Speicher geladen, was die Performance gegenüber unserer Implementierung verschlechtert.
+\noindent Der Code ist in die Verschlüsselung des linken und des rechten Halbblocks aufgeteilt. Es ist deutlich zu erkennen, dass wir während der Verschlüsselung auf ein Laden der Rundenschlüssel verzichten. Stattdessen werden bei Bedarf acht neue Rundenschlüssel in \texttt{xmm0} geladen (hier nicht gezeigt). Bei der RFC2040-Implementierung wird jeder Rundenschlüssel einzeln aus dem Speicher geladen.
 
 \section{Zusammenfassung}
 
@@ -502,6 +437,7 @@ Die RC5-Chiffre wurde mit unterschiedlichen Betriebsmodi erfolgreich implementie
 
 Aufgrund der Konstruktion der RC5-Chiffre eignet sich hingegen der Einsatz von SSE-Instruktionen für das paralelle Verschlüsseln mehrerer Blöcke in SSE-Registern nicht. Die Implementierung der Modi CTR und ECB könnte durch das parallele Verschlüsseln der Blöcke auf mehereren Hardware-Threads weiter beschleunigt werden. Weiterhin könnte das Anwendungsspektrum der Implementierung durch eine variable Wahl der Blockgröße und Rundenanzahl erweitert werden.
 
+\newpage
 \printbibliography
 
 \end{document}
