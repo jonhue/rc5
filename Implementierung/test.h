@@ -6,6 +6,8 @@
 #include "rc5.h"
 #include "references/rfc2040.h"
 
+extern uint16_t roundkeys[34];
+
 void run_test(char *id);
 
 #endif

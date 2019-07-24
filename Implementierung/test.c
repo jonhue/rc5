@@ -1,21 +1,18 @@
 #include "test.h"
 
-static uint16_t* save_roundkeys();
-
-static void restore_roundkeys(uint16_t* saved);
-
 static test_vector* setup_RFC2040_testvector(char* key, size_t key_length, char* plain, int plain_length, uint32_t iv);
 
 static int cmp_plain_to_decrypted(char* plain, char* key, uint32_t iv, uint16_t* savedRoundkeys);
 
 static int cmp_to_RFC2040(char* plain, char* key, uint32_t iv, uint16_t* savedRoundkeys);
 
-extern uint16_t* get_roundkeys_address();
+static void restore_roundkeys(uint16_t* savedRoundkeys);
 
 void run_test(char *id) {
     // Speichern der vorgenerierten Rundenschlüssel,
     // damit diese später zurückgesetzt werden können.
-    uint16_t* savedRoundkeys = save_roundkeys();
+    uint16_t* savedRoundkeys = malloc(34 * 2);
+    memcpy(savedRoundkeys, roundkeys, 34 * 2);
 
     if(id == NULL || strcmp(id, "rfc2040") == 0) {
         uint32_t iv = 0xabcd1234;
@@ -50,14 +47,8 @@ void run_test(char *id) {
     }
 }
 
-static uint16_t* save_roundkeys() {
-    uint16_t* saved = (uint16_t*) malloc(34 * 2);
-    memcpy(saved, get_roundkeys_address(), 34 * 2);
-    return saved;
-}
-
-static void restore_roundkeys(uint16_t* saved) {
-    memcpy(get_roundkeys_address(), saved, 34 * 2);
+static void restore_roundkeys(uint16_t* savedRoundkeys) {
+    memcpy(roundkeys, savedRoundkeys, 34 * 2);
 }
 
 static test_vector* setup_RFC2040_testvector(char* key, size_t key_length, char* plain, int plain_length, uint32_t iv) {

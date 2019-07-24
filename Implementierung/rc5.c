@@ -6,8 +6,6 @@
 #include "test.h"
 #include "bufferio.h"
 
-extern uint16_t roundkeys[];
-
 extern void reset_registers();
 
 static void lock(const void *addr, size_t len);
