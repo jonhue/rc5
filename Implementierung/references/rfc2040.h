@@ -70,6 +70,9 @@
     char    ciphertext[2*MAX_CIPHER_LENGTH+1];
     int cipher_length;
     RC5_WORD    S[MAX_S_LENGTH];
+    //EDIT *pKey *pAlg hinzugefügt, um von perf.c ein cleanup durchzuführen
+    void *pKey;
+    void *pAlg;
   } test_vector;
 
   /* Definition of the RC5 CBC algorithm object.

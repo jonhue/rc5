@@ -35,9 +35,14 @@
                     MAX_CIPHER_LENGTH - ptv->cipher_length,
                     &(ptv->cipher[ptv->cipher_length]));
     ptv->cipher_length += numBytesOut;
+
+    //EDIT: Nicht cleanen wenn Tests laufen, um diese nicht zu verfälschen
     if (destroy) {
       RC5_Key_Destroy (pKey);
       RC5_CBC_Destroy (pAlg);
+    } else {
+      ptv->pKey = pKey;
+      ptv->pAlg = pAlg;
     }
   }
 
