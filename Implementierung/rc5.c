@@ -32,7 +32,7 @@ static void usage(const char *restrict program_name) {
          "Usage: %s <command>\n\n"
          "    enc [-m <mode>] [-v] <key> <inputFile> [<outputFile>]\n"
          "    dec [-m <mode>] [-v] <key> <inputFile> [<outputFile>]\n"
-         "    test [test_id]\n"
+         "    test [<testId>]\n"
          "    perf\n\n"
          "where <mode> is one of:\n"
          "    cbc, ctr, ecb",
