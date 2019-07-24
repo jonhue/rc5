@@ -27,15 +27,15 @@ int main(int argc, char **argv) {
     }
 
     if (size_enc <= size_original) {
-        printf("One of the given files is malformed!");
+        printf("One of the given files is malformed!\n");
         return -1;
     }
 
     void *origin = malloc(BMP_HEADER_LENGTH);
     void *enc = malloc(size_original);
 
-    if (((uint32_t *) origin)[14] != 40 && // Nur Version 3
-        ((uint16_t *) origin)[28] < 24 &&  // Keine Indizierung
+    if (((uint32_t *) origin)[14] != 40 || // Nur Version 3
+        ((uint16_t *) origin)[28] < 24 ||  // Keine Indizierung
         ((uint32_t *) origin)[30] != 0) { // keine Kompression
         printf("Only BMP version 3 without compression and indexed colors is supported\n");
     }
