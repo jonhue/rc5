@@ -28,7 +28,7 @@
 
 \section{Einleitung}
 
-Im Folgenden wird die symmetrische Blockchiffre RC5 sowie die Implementierung dieser beschrieben. Zunächst wird der Algorithmus näher spezifiziert und auf dessen Sicherheit eingegangen. Daraufhin werden Aspekte der Lösungsfindung besprochen und der Implementierung dokumentiert. Abschließend wird die Implementierung gegen eine Referenzimplementierung getestet und die Performanz analysiert.
+Im Folgenden wird die symmetrische Blockchiffre RC5 sowie die Implementierung dieser beschrieben. Zunächst wird der Algorithmus näher spezifiziert und auf dessen Sicherheit eingegangen. Daraufhin werden Aspekte der Lösungsfindung besprochen und die Implementierung dokumentiert. Abschließend wird die Implementierung gegen eine Referenzimplementierung getestet und die Performanz analysiert.
 
 \section{Problemstellung und Spezifikation}
 
@@ -36,7 +36,7 @@ Im Folgenden wird die symmetrische Blockchiffre RC5 sowie die Implementierung di
 
 \subsubsection{Schlüsselerweiterung mit P und Q}
 
-RC5 ist rundenbasiert, weshalb zunächst aus dem gegebenen Schlüssel mehrere Rundenschlüssel erzeugt werden. Für den Schritt der Schlüsselexpansion von RC5 werden die beiden ungeraden Ganzzahlen $P$ und $Q$ benötigt. Diese sind jeweils für eine gegebene Blockgröße von RC5 konstant. Für das von uns implementierte RC5-16/16/b gilt:
+RC5 ist rundenbasiert, weshalb zunächst aus dem gegebenen Schlüssel mehrere Rundenschlüssel erzeugt werden müssen. Für den Schritt der Schlüsselexpansion von RC5 werden die beiden ungeraden Ganzzahlen $P$ und $Q$ benötigt. Diese sind jeweils für eine gegebene Blockgröße von RC5 konstant. Für das von uns implementierte RC5-16/16/b gilt:
 
 \begin{multicols}{2}
 \noindent
@@ -65,13 +65,13 @@ Das Bundesamt für Sicherheit in der Informationstechnik (BSI) schlägt für Blo
 
 \paragraph{Betriebsmodus} Ist der durch den Betriebsmodus generierte Ciphertext nicht pseudorandom --- resultieren äquivalente Plaintext-Blöcke beispielsweise in äquivalenten Ciphertext-Blöcken ---, dann enthält der Ciphertext Informationen zur Struktur des Plaintextes \cite[p.22]{bsi}. In diesem Fall können Teile des Plaintextes durch \textit{Häufigkeitsanalyse} rekonstruiert \cite[p.22]{bsi}, oder sogar der verwendete Schlüssel durch einen \textit{Codebook Attack} gewonnen werden \cite[p.2]{elbaz}.\bigbreak
 
-Sichere Modi sind beispielsweise \textit{Cipher Block Chaining (CBC)} und der \textit{Counter Mode (CTR)}, da dort der $n$-te Chiphertext-Block nicht nur von dem $n$-ten Plaintext-Block und dem genutzten Schlüssel abhängt, sondern zudem noch von einem weiteren Wert, wie dem $(n-1)$-ten Ciphertext-Block oder einem Zähler \cite[p.22]{bsi}.
+Sichere Modi sind beispielsweise \textit{Cipher Block Chaining (CBC)} und \textit{Counter (CTR)}, da dort der $n$-te Chiphertext-Block nicht nur von dem $n$-ten Plaintext-Block und dem genutzten Schlüssel abhängt, sondern zudem noch von einem weiteren Wert, wie dem $(n-1)$-ten Ciphertext-Block oder einem Zähler \cite[p.22]{bsi}.
 
 \paragraph{Rundenanzahl} Nach Kaliski und Yin werden für eine \textit{differenzielle Kryptoanalyse} von RC5-32/16/b entweder $2^{61}$ selbst gewählte Plaintexte oder $2^{63}$ bekannte Plaintexte benötigt. Ein solcher Angriff auf ein $16$-rundiges RC5 ist damit überaus unwahrscheinlich. Da die Anzahl der möglichen Plaintexte bei dieser Konfiguration von RC5 jedoch bei $2^{64}$ liegt, kann ein solcher Angriff nicht theoretisch ausgeschlossen werden \cite[p.6]{kaliski+yin}. Weiterhin sei eine \textit{lineare Kryptoanalyse von RC5} nur bei einer sehr geringen Rundenzahl von RC5 effektiv \cite[p.28]{kaliski+yin}.\bigbreak
 
 Knudsen und Meier zeigen zwar, dass die Komplexität des von Kaliski und Yin vorgeschlagenen differenziellen Angriffs um einen Faktor von bis zu $512$ reduziert werden kann \cite[p.2]{knudsen+meier}, allerdings bleibt ein solcher Angriff damit weiterhin sehr unwahrscheinlich. Zudem wurde gezeigt, dass für bestimmte Teile des Schlüsselraums die differentiellen Kryptoanalysen weiter verbessert werden können \cite[p.13]{knudsen+meier}. Für einen effektiven Angriff sind dennoch entweder zu wenige Schlüssel betroffen oder die Anzahl der benötigten Plaintexte ist weiterhin zu hoch. Ähnliches konnte Heys für lineare Kryptoanalyse zeigen \cite[p.5]{heys}.
 
-\paragraph{Blockgröße} Durch die $32$ Bit Blockgröße von RC5-16/16/b ist die Komplexität eines \textit{generischen Angriffs} durch $2^{32}$ nach oben beschränkt. Bellare et al. zeigen für CBC, dass die Unsicherheit eines generischen Angriffs durch
+\paragraph{Blockgröße} Durch die $32$-Bit Blockgröße von RC5-16/16/b ist die Komplexität eines \textit{generischen Angriffs} durch $2^{32}$ nach oben beschränkt. Bellare et al. zeigen für CBC, dass die Unsicherheit eines generischen Angriffs durch
 \[
     \epsilon \geq \left(\frac{\mu^2}{l^2} - \frac{\mu}{l}\right) \cdot \frac{1}{2^l}
 \]
@@ -139,7 +139,7 @@ Seien die Rundenschlüssel $(k_1, ..., k_r) \in K^r$ und die Familie der Rundenf
 \[
     F_{n, K} := \{f_k \mid k \in K, f_k \colon \{0, 1\}^n \to \{0, 1\}^n\}.
 \]
-Dann ist eine Feistelchiffre das Feistelnetzwerk $\Psi^r(f_{k_1},...,f_{k_r})$. Also die $r$-rundige Permutation von der Nachricht $\{0, 1\}^{2n}$ in Abhängigkeit vom Schlüssel $(k_1, ..., k_r)$ \cite[p.14]{nachef}.
+Dann ist eine Feistelchiffre das Feistelnetzwerk $\Psi^r(f_{k_1},...,f_{k_r})$, also die $r$-rundige Permutation von der Nachricht $\{0, 1\}^{2n}$ in Abhängigkeit vom Schlüssel $(k_1, ..., k_r)$ \cite[p.14]{nachef}.
 
 \subsubsection{RC5 als Feistelchiffre}
 
@@ -223,13 +223,13 @@ Nach dem Entschlüsseln des Codewortes, kann das Padding auf eindeutige Weise en
 
 \subsection{Initialisierungsvektor}
 \label{sec:Initialisierungsvektor}
-Eine Herausforderung ist die Erzeugung und Speicherung des Initialisierungsvektors, der beim Cipher Block Chaining Mode benötigt wird. Es ist einerseits entscheidend, dass dieser nicht aus zuvor bekannten Informationen erzeugt wird, wie es zum Beispiel bei SSL 3.0 und TLS 1.0 der Fall war. Dort führte dies zu einer Schwäche, falls dem Angreifer zwei aufeinanderfolgende Ciphertext-Blöcke bekannt waren \cite{ssltls}. Andererseits ist eine ausreichende Länge wichtig, um einem Related-Key-Attack vorzubeugen, der zum Beispiel das WEP-Protokoll betraf \cite{wep}.\bigbreak
+Eine Herausforderung ist die Erzeugung und Speicherung des Initialisierungsvektors, der beim Cipher Block Chaining Mode benötigt wird. Es ist einerseits entscheidend, dass dieser nicht aus zuvor bekannten Informationen erzeugt wird, wie es zum Beispiel bei SSL 3.0 und TLS 1.0 der Fall war. Dort führte dies zu einer Schwäche, falls dem Angreifer zwei aufeinanderfolgende Ciphertext-Blöcke bekannt waren \cite{ssltls}. Andererseits ist eine ausreichende Länge wichtig, um einem Related-Key-Attack vorzubeugen, der beispielsweise das WEP-Protokoll betraf \cite{wep}.\bigbreak
 
 Aufgrund der Blocklänge bietet sich nur ein 32-Bit-Initialisierungsvektor an, der pseudozufällig generiert wird.
 Eine Geheimhaltung des Initialisierungsvektors ist nicht erforderlich \cite[p.194]{appcrypt}, weshalb der Vektor am Ende der verschlüsselten Datei gespeichert und dort bei der Entschlüsselung wieder ausgelesen wird.
 
 \subsection{Optimierung durch SIMD}
-Eine Optimierung durch SIMD ist möglich und sinnvoll, wenn ein Algorithmus auf mehreren Datenblöcken die selbe Operation ohne Abhängigkeiten zwischen Blöcken ausführt. Bei RC5 und dem CBC-Mode werden jedoch häufig Abhängigkeiten verwendet, um statistischen Analysen, wie sie zum Beispiel beim ECB-Mode möglich sind, vorzubeugen.\bigbreak
+Eine Optimierung durch SIMD ist möglich und sinnvoll, wenn ein Algorithmus auf mehreren Datenblöcken dieselbe Operation ohne Abhängigkeiten zwischen Blöcken ausführt. Bei RC5 und dem CBC-Mode werden jedoch häufig Abhängigkeiten verwendet, um statistischen Analysen, wie sie zum Beispiel beim ECB-Mode möglich sind, vorzubeugen.\bigbreak
 
 Beim Key-Mixing hängt der nächste Rundenschlüssel beispielsweise direkt vom vorherigen ab, wodurch eine Parallelisierung unmöglich wird.
 Ähnliches gilt für die Ver- und Entschlüsselung, da dort zur Erzeugung des nächsten Ciphertextblocks der vorherige benötigt wird. Die einzige mögliche Optimierung ist das gleichzeitige Laden mehrerer Rundenschlüssel oder Blöcke aus dem Speicher, um die Anzahl der Zugriffe zu minimieren. Beim CBC-Betriebsmodus ist nur ein Laden mehrerer Rundenschlüssel möglich. Wir verwenden ein XMM-Register, um 8 16-Bit-Rundenschlüssel gleichzeitig zu laden. Für die tatsächliche Verwendung müssen diese jedoch aus dem XMM-Register entnommen werden, da nur eine Runde gleichzeitig berechnet werden kann.\bigbreak
@@ -240,7 +240,7 @@ Beim Counter-Betriebsmodus ist eine Optimierung durch SIMD möglich. Da der Coun
 Die hier bereitgestellte RC5-Implementierung kann zur sicheren Ver- und Entschlüsselung von kleinen Datenmengen genutzt werden.
 Voraussetzung dafür, ist das Wählen eines geeigneten Schlüssels mit mindestens 16 Byte Länge (siehe
 \hyperref[sec:Sicherheit]{2.1.2 Sicherheit}).
-Es stehen die Betriebsmodi Cipher Block Chaining (CBC), Counter Mode (CTR) und der unsichere Electronic Codebook (ECB) zur Verfügung, wobei letztere effizienter sind.\bigbreak
+Es stehen die Betriebsmodi Cipher Block Chaining (CBC), Counter (CTR) und der unsichere Electronic Codebook (ECB) zur Verfügung, wobei letztere effizienter sind.\bigbreak
 
 Im Folgenden ist die Gebrauchsanweisung der RC5-Implementierung beschrieben:
 
@@ -248,9 +248,9 @@ Im Folgenden ist die Gebrauchsanweisung der RC5-Implementierung beschrieben:
 \begin{verbatim}
 rc5 <command>
 
-    enc [-m <mode>] [-v] <key> <inputFile> [<outputFile>]
-    dec [-m <mode>] [-v] <key> <inputFile> [<outputFile>]
-    test [<testId>]
+    enc [-m <mode>] [-v] <key> <input_file> [<output_file>]
+    dec [-m <mode>] [-v] <key> <input_file> [<output_file>]
+    test [<test_id>]
     perf
 
 where <mode> is one of:
@@ -260,7 +260,7 @@ where <mode> is one of:
 
 Es kann entweder verschlüsselt oder entschlüsselt werden. Sofern keine Ausgabedatei angegeben ist, wird das Ergebnis in die Eingabedatei geschrieben. Der \texttt{test}-Command kann zur Überprüfung der Korrektheit verwendet werden. Die Performance lässt sich mit dem \texttt{perf}-Command messen.
 
-\paragraph{Sicherheitshinweise} Solange der Rechner nicht während einer Ver-/Entschlüsselung in den Suspend-Modus versetzt wird, stellt unsere Implementierung sicher, dass der Schlüssel nicht durch Swapping auf die Festplatte geschrieben wird. Nach abgeschlossener Ver-/Entschlüsselung werden die sensiblen Daten aus dem Arbeitsspeicher entfernt. Allerdings ist es möglich, dass durch Swapping, Teile der zu verschlüsselnden/entschlüsselten Daten auf die Festplatte geschrieben wird. Eine Komprimierung des Schlüssels ist auf diese Weise zwar nicht möglich, dennoch ist es empfehlenswert, die Swap-Partition zu verschlüsseln.
+\paragraph{Sicherheitshinweise} Solange der Rechner nicht während einer Ver-/Entschlüsselung in den Suspend-Modus versetzt wird, stellt unsere Implementierung sicher, dass der Schlüssel nicht durch Swapping auf die Festplatte geschrieben wird. Nach abgeschlossener Ver-/Entschlüsselung werden die sensiblen Daten aus dem Arbeitsspeicher entfernt. Allerdings ist es durch Swapping möglich, dass Teile der zu verschlüsselnden/entschlüsselten Daten auf die Festplatte geschrieben werden. Eine Kompromittierung des Schlüssels ist auf diese Weise zwar nicht möglich, dennoch ist es empfehlenswert, die Swap-Partition zu verschlüsseln.
 
 \subsection{Struktur der Implementierung}
 
@@ -269,7 +269,7 @@ Die Implementierung ist in die folgenden sieben Module gegliedert:
 \begin{center}
 \begin{tabular}{ |c|m{11.2cm}| }
 \hline
-\texttt{rc5} & Enthält die Implementierung der RC5-Chiffre, sowie der Betriebsmodi CBC, CTR und ECB. \\
+\texttt{rc5} & Enthält die Implementierung der RC5-Chiffre, sowie die Betriebsmodi CBC, CTR und ECB. \\
 \hline
 \texttt{test} & Enthält die Funktion zum Ausführen der Korrektheits-Tests. \\
 \hline
@@ -277,9 +277,9 @@ Die Implementierung ist in die folgenden sieben Module gegliedert:
 \hline
 \texttt{key\_expansion} & Enthält die Implementierung zur Vorberechnung der Rundenschlüssel. \\
 \hline
-\texttt{enlighten} & Enthält die Implementierung für das Kopieren des BMP-Datei-Headers aus der ursprünglichen in die verschlüsselte Datei, damit diese durch ein Bildprogramm dargestellt werden kann. \\
+\texttt{enlighten} & Enthält die Implementierung für das Kopieren des BMP-Headers aus dem ursprünglichen in das verschlüsselte Bild, sodass dieses dargestellt werden kann. \\
 \hline
-\texttt{bufferio} & Enthält Library-Funktionen, die das Lesen aus und Schreiben in Dateien ermöglichen. \\
+\texttt{bufferio} & Enthält Helfer-Funktionen, die das Lesen aus und Schreiben in Dateien ermöglichen. \\
 \hline
 \texttt{references} & Enthält die RFC2040-Referenzimplementierung. \\
 \hline
@@ -383,7 +383,7 @@ Zur Überprüfung der Korrektheit haben wir die Ergebnisse unserer Implementieru
 Die Entschlüsselung mit dem CBC/ECB-Modus nutzt jeweils die Assemblerfunktion \texttt{rc5\_dec} und hat daher eine vergleichbare Laufzeit. Die Laufzeit der Verschlüsselung mit CBC ist ähnlich, da hier die zu \texttt{rc5\_dec} vergleichbare Assemblerfunktion \texttt{rc5\_enc} verwendet wird. Im Vergleich zur RFC2040-Implementierung
 ist unsere Assemblerimplementierung um bis zu 26\% schneller.\bigbreak
 
-Obwohl der Counter Mode sowie die Verschlüsselung im ECB-Modus mit SIMD-Instruktionen 8 Blöcke parallel verschlüsseln, sind sie deutlich langsamer als die übrigen Implementierungen. Die Konstruktion der Chiffre bedingt, dass die beiden Halblöcke jedes Blocks um den Wert des jeweils anderen Block rotiert werden müssen. Daher müssen die 8 Blöcke hier temporär aus den SSE-Registern geladen und einzeln rotiert werden.
+Obwohl der Counter Mode sowie die Verschlüsselung im ECB-Modus mit SIMD-Instruktionen 8 Blöcke parallel verschlüsseln, sind sie deutlich langsamer als die übrigen Implementierungen. Die Konstruktion der Chiffre bedingt, dass die beiden Halblöcke jedes Blocks um den Wert des jeweils anderen Blocks rotiert werden müssen. Daher müssen die 8 Blöcke hier temporär aus den SSE-Registern geladen und einzeln rotiert werden.
 
 \subsubsection{Vergleich des Assembler-Codes}
 
@@ -435,10 +435,11 @@ add    ax,WORD PTR [rdx-0x2]
 
 Die RC5-Chiffre wurde mit unterschiedlichen Betriebsmodi erfolgreich implementiert und mit einer Referenzimplementierung verglichen. Es konnte gezeigt werden, dass der Einsatz von SSE-Registern zum Laden der Rundenschlüssel für eine deutliche Performance-Steigerung sorgt.\bigbreak
 
-Aufgrund der Konstruktion der RC5-Chiffre eignet sich hingegen der Einsatz von SSE-Instruktionen für das paralelle Verschlüsseln mehrerer Blöcke in SSE-Registern nicht. Die Implementierung der Modi CTR und ECB könnte durch das parallele Verschlüsseln der Blöcke auf mehereren Hardware-Threads weiter beschleunigt werden. Weiterhin könnte das Anwendungsspektrum der Implementierung durch eine variable Wahl der Blockgröße und Rundenanzahl erweitert werden.
+Aufgrund der Konstruktion der RC5-Chiffre eignet sich hingegen der Einsatz von SSE-Instruktionen für das paralelle Verschlüsseln mehrerer Blöcke in SSE-Registern nicht. Die Implementierung der Modi CTR und ECB könnte durch das parallele Verschlüsseln der Blöcke auf mehreren Hardware-Threads weiter beschleunigt werden. Weiterhin könnte das Anwendungsspektrum der Implementierung durch eine variable Wahl der Blockgröße und Rundenanzahl erweitert werden.
 
 \newpage
-\printbibliography
+{\renewcommand{\markboth}[2]{}
+\printbibliography}
 
 \end{document}
 
