@@ -12,8 +12,10 @@
 \usepackage{icomma}
 \usepackage{hyperref}
 \usepackage{tabularx}
+\usepackage{pgfplots}
 \usepackage[block=ragged]{biblatex}
 \usepackage{multicol}
+\pgfplotsset{width=\textwidth,compat=1.9}
 \addbibresource{bib/Literatur.bib}
 
 % Diese Zeile bitte -nicht- aendern.
@@ -371,6 +373,82 @@ rc5: test.dec: Could not decrypt. File is malformed.
 Es kann jedoch vorkommen, dass eine Datei nicht mit unserer Implementierung verschlüsselt wurde und trotzdem alle Kriterien erfüllt. In diesem Fall wird die Datei dennoch ``entschlüsselt'', es wird keine Fehlermeldung ausgegeben.
 
 \subsection{Performance}
+
+Mittels des \texttt{perf}-Commands kann die Performance von verschiedenen Betriebsmodi, inklusive der
+ursprünglichen Referenzimplementierung für die RC5-Verschlüsselung von Rivest, getestet werden.
+Der folgende Graph zeigt die Ergebnisse für verschiedene Dateigrößen.
+
+\begin{tikzpicture}
+\begin{axis}[
+    title={Vergleich der Betriebsmodi inkl. der Referenzimplementierung},
+    xlabel={Dateigröße in MB},
+    ylabel={Sekunden},
+    xmin=1, xmax=1000,
+    ymin=0, ymax=11.5,
+    xtick={1,50,100, 250,500, 1000},
+    ytick={0,1,2,3,4,5,6,7,8,9,10,11},
+    legend pos=north west,
+    legend entries={
+    CBC encryption,
+    CBC decryption,
+    CTR,
+    ECB encryption,
+    ECB decryption,
+    RFC2040 CBC encryption},
+    ymajorgrids=true,
+    grid style=dashed,
+]
+ 
+\addplot[
+    color=purple,
+    mark=x,
+    ]
+    coordinates {
+    (1,0.008)(50,0.399)(100,0.791)(250,2.020)(500,3.960)(1000,8.012)
+    };
+\addplot[
+   color=green,
+   mark=x,
+   ]
+   coordinates {
+   (1,0.007)(50,0.362)(100,0.772)(250,1.927)(500,3.879)(1000,8.022)
+   };
+\addplot[
+   color=blue,
+   mark=x,
+   ]
+   coordinates {
+   (1,0.010)(50,0.524)(100,1.045)(250,2.613)(500,5.369)(1000,10.817)
+   };
+\addplot[
+   color=yellow,
+   mark=x,
+   ]
+   coordinates {
+   (1,0.010)(50,0.509)(100,1.098)(250,2.544)(500,5.182)(1000,10.577)
+   };
+\addplot[
+   color=orange,
+   mark=x,
+   ]
+   coordinates {
+   (1,0.007)(50,0.381)(100,0.765)(250,1.903)(500,3.960)(1000,7.997)
+   };
+\addplot[
+   color=red,
+   mark=x,
+   ]
+   coordinates {
+   (1,0.010)(50,0.502)(100,1.021)(250,2.722)(500,5.358)(1000,11.124)
+   };
+
+\end{axis}
+\end{tikzpicture}
+
+Die Entschlüsselung mit dem CBC/ECB-Modus nutzt jeweils die Assemblerfunktion \texttt{rc5\_dec} und hat daher eine vergleichbare Laufzeit. Die Laufzeit der Verschlüsselung mit CBC ist ähnlich, da hier die zu \texttt{rc5\_dec} vergleichbare Assemblerfunktion \texttt{rc5\_enc} verwendet wird. Im Vergleich zur RFC2040-Implementierung
+ist unsere Assemblerimplementierung um bis zu 26\% schneller.\bigbreak
+
+Obwohl der Counter Mode sowie die Verschlüsselung im ECB-Modus mit SIMD-Instruktionen 8 Blöcke parallel verschlüsseln, sind sie deutlich langsamer als die übrigen Implementierungen. Die Konstruktion der Chiffre bedingt, dass die beiden Halblöcke jedes Blocks um den Wert des jeweils anderen Block rotiert werden müssen. Daher müssen die 8 Blöcke hier temporär aus den SSE-Registern geladen und einzeln rotiert werden.
 
 \subsubsection{Vergleich des Assembler-Codes}
 
