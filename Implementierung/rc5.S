@@ -5,7 +5,6 @@
 .global rc5_dec
 .global reset_registers
 .global roundkeys
-.global get_roundkeys_address
 
 .data
 

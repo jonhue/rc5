@@ -6,8 +6,9 @@
   // Die Implementierung wurde angepasst, um statt 64 Bit eine Blockgröße von 32 Bit zu unterstützen.
   // Änderungen am Original sind durch Kommentare hervorgehoben, die mit EDIT anfangen.
 
-  void run_rfc2040_test(ptv)
+  void run_rfc2040_test(ptv, destroy)
     test_vector *ptv;
+    int destroy;
   {
     rc5UserKey  *pKey;
     rc5CBCAlg       *pAlg;
@@ -34,8 +35,10 @@
                     MAX_CIPHER_LENGTH - ptv->cipher_length,
                     &(ptv->cipher[ptv->cipher_length]));
     ptv->cipher_length += numBytesOut;
-    RC5_Key_Destroy (pKey);
-    RC5_CBC_Destroy (pAlg);
+    if (destroy) {
+      RC5_Key_Destroy (pKey);
+      RC5_CBC_Destroy (pAlg);
+    }
   }
 
   /* Allocate and initialize an RC5 user key.

@@ -7,7 +7,7 @@
   // Author: Ronald Rivest
   // Die Implementierung wurde angepasst, um statt 64 Bit eine Blockgröße von 32 Bit zu unterstützen.
   // Änderungen am Original sind durch Kommentare hervorgehoben, die mit EDIT anfangen.
-  
+
   /* Definitions for RC5 as a 64 bit block cipher. */
   /* The "unsigned int" will be 32 bits on all but */
   /* the oldest compilers, which will make it 16 bits. */
@@ -46,10 +46,9 @@
   #define Qw   Q64
   #endif
 
-  // EDIT: Blockgröße sind 32 Bit
   #define BLOCK_LENGTH      (4 /* bytes */)
   #define MAX_KEY_LENGTH    (64 /* bytes */)
-  #define MAX_PLAIN_LENGTH  (128 /* bytes */)
+  #define MAX_PLAIN_LENGTH  (249999996 /* bytes */)
   #define MAX_CIPHER_LENGTH (MAX_PLAIN_LENGTH + BLOCK_LENGTH)
   #define MAX_ROUNDS        (20)
   #define MAX_S_LENGTH      (2 * (MAX_ROUNDS + 1))
@@ -93,7 +92,7 @@
     char   *keyBytes;
   } rc5UserKey;
 
-  void run_rfc2040_test(test_vector* ptv);
+  void run_rfc2040_test(test_vector* ptv, int destroy);
 
   rc5UserKey *RC5_Key_Create ();
 

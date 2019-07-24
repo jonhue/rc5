@@ -5,6 +5,7 @@
 #include "rc5.h"
 #include "test.h"
 #include "bufferio.h"
+#include "perf.h"
 
 extern void reset_registers();
 
@@ -29,11 +30,13 @@ static void cleanup(void) {
 static void usage(const char *restrict program_name) {
     errx(EX_USAGE,
          "Usage: %s <command>\n\n"
-         "    %s enc <key> <inputFile> [outputFile] [-m <mode>] [-v]\n"
-         "    %s dec <key> <inputFile> [outputFile] [-m <mode>] [-v]\n\n"
+         "    enc [-m <mode>] [-v] <key> <inputFile> [<outputFile>]\n"
+         "    dec [-m <mode>] [-v] <key> <inputFile> [<outputFile>]\n"
+         "    test [test_id]\n"
+         "    perf\n\n"
          "where <mode> is one of:\n"
          "    cbc, ctr, ecb",
-         program_name, program_name, program_name);
+         program_name);
 }
 
 int main(int argc, char **argv) {
@@ -83,6 +86,9 @@ int main(int argc, char **argv) {
         } else {
             run_test(argv[1]);
         }
+        exit(EXIT_SUCCESS);
+    } else if (strcmp(argv[0], "perf") == 0) {
+        run_perf_tests();
         exit(EXIT_SUCCESS);
     } else {
         usage(program_name);
@@ -193,7 +199,9 @@ int main(int argc, char **argv) {
                 printf("Using CBC mode for decryption...\n");
             }
 
-            uint32_t iv = ((uint32_t *) data)[size / sizeof(uint32_t) - 1]; // Initialisierungsvektor am Dateiende
+            // Initialisierungsvektor am Dateiende
+            uint32_t iv = ((uint32_t *) data)[size / sizeof(uint32_t) - 1];
+
             rc5_cbc_dec((unsigned char *) key, strlen(key), data, size - size_iv, iv);
 
             uint8_t size_padding = ((uint8_t *) data)[size - size_iv - 1];
@@ -301,7 +309,7 @@ void rc5_ctr(unsigned char *key, size_t keylen, uint32_t *buffer, size_t len) {
     int progress = 0;
     while (i < len / BLOCKSIZE) {
         if (i + 7 < len / BLOCKSIZE) {
-            uint32_t encrypted_counters[8] = {i, i+1, i+2, i+3, i+4, i+5, i+6, i+7};
+            uint32_t encrypted_counters[8] = {i, i + 1, i + 2, i + 3, i + 4, i + 5, i + 6, i + 7};
             rc5_enc_128(encrypted_counters);
             for (size_t j = 0; j < 8; j++) {
                 *(buffer++) ^= encrypted_counters[j];
@@ -339,7 +347,8 @@ void rc5_ecb_enc(unsigned char *key, size_t keylen, uint32_t *buffer, size_t len
     while (i < len / BLOCKSIZE) {
         if (i + 7 < len / BLOCKSIZE) {
             rc5_enc_128(buffer);
-            buffer += 8; i += 8;
+            buffer += 8;
+            i += 8;
         } else {
             rc5_enc(buffer++);
             i++;
